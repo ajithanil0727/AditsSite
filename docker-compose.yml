@@ -1,0 +1,32 @@
+# Local development services.
+#   docker compose up -d
+# Postgres: localhost:5432 (user/pass/db: mgmt/mgmt/mgmt)
+# Mailpit (catches all dev email): SMTP localhost:1025, web UI http://localhost:8025
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mgmt
+      POSTGRES_PASSWORD: mgmt
+      POSTGRES_DB: mgmt
+      TZ: Asia/Kolkata
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mgmt"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  pgdata:
