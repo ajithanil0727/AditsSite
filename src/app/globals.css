@@ -177,3 +177,24 @@
     @apply font-sans;
   }
 }
+
+/* Printed documents are always light, whatever the screen theme. */
+@media print {
+  .dark {
+    color-scheme: light;
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.2 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.2 0 0);
+    --muted: oklch(0.96 0 0);
+    --muted-foreground: oklch(0.42 0 0);
+    --border: oklch(0.85 0 0);
+  }
+  .no-print {
+    display: none !important;
+  }
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}

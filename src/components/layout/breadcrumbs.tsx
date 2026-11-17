@@ -11,7 +11,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { SEGMENT_LABELS } from "./nav-config";
+import { NON_LINK_SEGMENTS, SEGMENT_LABELS } from "./nav-config";
 
 export function Breadcrumbs() {
   const segments = usePathname().split("/").filter(Boolean);
@@ -19,7 +19,6 @@ export function Breadcrumbs() {
     href: "/" + segments.slice(0, i + 1).join("/"),
     label: SEGMENT_LABELS[segment] ?? "Details",
   }));
-  // "/admin/settings" has no page of its own: render it as plain text.
   return (
     <Breadcrumb className="hidden md:block">
       <BreadcrumbList>
@@ -27,7 +26,7 @@ export function Breadcrumbs() {
           <Fragment key={c.href}>
             {i > 0 && <BreadcrumbSeparator />}
             <BreadcrumbItem>
-              {i === crumbs.length - 1 || c.href === "/admin/settings" ? (
+              {i === crumbs.length - 1 || NON_LINK_SEGMENTS.has(c.href) ? (
                 <BreadcrumbPage>{c.label}</BreadcrumbPage>
               ) : (
                 <BreadcrumbLink asChild>

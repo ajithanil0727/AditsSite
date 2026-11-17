@@ -53,6 +53,7 @@ export function DataTable<T extends RowData>({
   emptyText = "Nothing here yet.",
   allowShowDeleted = false,
   getRowId,
+  paginate = true,
 }: {
   columns: Column<T>[];
   data: T[];
@@ -64,6 +65,8 @@ export function DataTable<T extends RowData>({
   emptyText?: string;
   allowShowDeleted?: boolean;
   getRowId?: (row: T) => string;
+  /** false = show every row, no paging controls (short lists). */
+  paginate?: boolean;
 }) {
   const { params, set, pending } = useUrlState();
   const [search, setSearch] = useState(params.get("q") ?? "");
@@ -171,46 +174,48 @@ export function DataTable<T extends RowData>({
         </Table>
       </div>
 
-      <div className="flex flex-col items-center justify-between gap-2 text-sm text-muted-foreground sm:flex-row">
-        <span>
-          {from}–{to} of {total}
-        </span>
-        <div className="flex items-center gap-2">
-          <Select value={String(pageSize)} onValueChange={(v) => set({ size: v })}>
-            <SelectTrigger size="sm" className="w-[90px]" aria-label="Rows per page">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[10, 20, 50, 100].map((n) => (
-                <SelectItem key={n} value={String(n)}>
-                  {n} / page
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            aria-label="Previous page"
-            disabled={page <= 1}
-            onClick={() => set({ page: String(page - 1) }, false)}
-          >
-            <ChevronLeftIcon />
-          </Button>
+      {paginate && (
+        <div className="flex flex-col items-center justify-between gap-2 text-sm text-muted-foreground sm:flex-row">
           <span>
-            {page} / {pages}
+            {from}–{to} of {total}
           </span>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            aria-label="Next page"
-            disabled={page >= pages}
-            onClick={() => set({ page: String(page + 1) }, false)}
-          >
-            <ChevronRightIcon />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select value={String(pageSize)} onValueChange={(v) => set({ size: v })}>
+              <SelectTrigger size="sm" className="w-[90px]" aria-label="Rows per page">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[10, 20, 50, 100].map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n} / page
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="Previous page"
+              disabled={page <= 1}
+              onClick={() => set({ page: String(page - 1) }, false)}
+            >
+              <ChevronLeftIcon />
+            </Button>
+            <span>
+              {page} / {pages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="Next page"
+              disabled={page >= pages}
+              onClick={() => set({ page: String(page + 1) }, false)}
+            >
+              <ChevronRightIcon />
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

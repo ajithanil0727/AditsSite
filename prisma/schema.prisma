@@ -50,6 +50,7 @@ enum AuditAction {
   APPROVE
   REJECT
   EXPORT
+  REVEAL_SECRET // e.g. a device unlock code was viewed
 }
 
 enum DocType {
@@ -64,6 +65,7 @@ enum DocType {
   CERTIFICATE
   PURCHASE
   STOCK_TRANSFER
+  SERVICE_RECEIPT
   EMPLOYEE_ID
 }
 
@@ -196,6 +198,12 @@ enum ApprovalChannel {
   PORTAL
 }
 
+enum PaymentKind {
+  ADVANCE // collected at intake, adjusted on the invoice
+  PAYMENT
+  REFUND // money returned to the customer (negative effect)
+}
+
 enum LineKind {
   PART
   LABOUR
@@ -258,6 +266,7 @@ enum MoneyTxnSource {
   FEE_PAYMENT
   FEE_REFUND
   INVOICE_PAYMENT
+  SERVICE_REFUND
   OTHER_INCOME
   EXPENSE
   VENDOR_PAYMENT
@@ -488,7 +497,7 @@ model Branch {
   customers           Customer[]
   jobCards            JobCard[]
   invoices            Invoice[]
-  invoicePayments     InvoicePayment[]
+  servicePayments     ServicePayment[]
   stocks              Stock[]
   stockMovements      StockMovement[]
   stockTransfersOut   StockTransfer[]          @relation("StockTransferFrom")
@@ -590,7 +599,8 @@ model User {
   partRequestsIssued   PartRequest[]      @relation("PartIssuer")
   jobLabour            JobLabour[]
   invoicesCreated      Invoice[]
-  invoicePaymentsTaken InvoicePayment[]
+  servicePaymentsTaken ServicePayment[]
+  unlockReveals        JobCard[]          @relation("JobUnlockRevealedBy")
 
   stockMovements     StockMovement[]
   transfersSent      StockTransfer[] @relation("TransferDispatcher")
@@ -940,7 +950,7 @@ model PaymentMode {
 
   feePayments     FeePayment[]
   feeRefunds      FeeRefund[]
-  invoicePayments InvoicePayment[]
+  servicePayments ServicePayment[]
   vendorPayments  VendorPayment[]
   incomes         Income[]
   expenses        Expense[]
@@ -1629,6 +1639,15 @@ model JobCard {
   deliveredBy        User?            @relation("JobDeliveredBy", fields: [deliveredById], references: [id])
   tatMinutes         Int? // calculated on delivery, excluding paused statuses
   cancelReason       String?
+  /// Parts free on this warranty job (labour is always free on warranty jobs). Set by the service manager.
+  warrantyPartsFree  Boolean          @default(false)
+  /// Handed over with a balance due (needs jobcards.deliver_credit).
+  deliveredOnCredit  Boolean          @default(false)
+  /// Device password / pattern, AES-256-GCM encrypted. Wiped on delivery.
+  unlockCodeEnc      String?
+  unlockRevealedAt   DateTime?
+  unlockRevealedById String?
+  unlockRevealedBy   User?            @relation("JobUnlockRevealedBy", fields: [unlockRevealedById], references: [id])
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   deletedAt          DateTime?
@@ -1640,6 +1659,7 @@ model JobCard {
   parts        JobPart[]
   labour       JobLabour[]
   invoices     Invoice[]
+  payments     ServicePayment[]
 
   @@unique([organizationId, jobNo])
   @@index([branchId, statusId])
@@ -1816,7 +1836,7 @@ model Invoice {
   updatedAt         DateTime         @updatedAt
 
   items      InvoiceItem[]
-  payments   InvoicePayment[]
+  payments   ServicePayment[]
   feePayment FeePayment?      @relation("FeePaymentInvoice")
   feeRefund  FeeRefund?       @relation("RefundCreditNote")
 
@@ -1846,14 +1866,19 @@ model InvoiceItem {
   sortOrder    Int      @default(0)
 }
 
-/// Payments against service invoices (fee payments use FeePayment).
-model InvoicePayment {
+/// Money received (or refunded) on a service job. Advances have no invoice until one is issued.
+/// Every row has its own receipt number (SERVICE_RECEIPT series). Fee payments use FeePayment.
+model ServicePayment {
   id             String       @id @default(cuid())
   organizationId String
   branchId       String
   branch         Branch       @relation(fields: [branchId], references: [id])
-  invoiceId      String
-  invoice        Invoice      @relation(fields: [invoiceId], references: [id])
+  jobCardId      String
+  jobCard        JobCard      @relation(fields: [jobCardId], references: [id])
+  invoiceId      String?
+  invoice        Invoice?     @relation(fields: [invoiceId], references: [id])
+  receiptNo      String
+  kind           PaymentKind
   paidAt         DateTime
   amount         Decimal      @db.Decimal(12, 2)
   paymentModeId  String
@@ -1864,6 +1889,10 @@ model InvoicePayment {
   receivedById   String
   receivedBy     User         @relation(fields: [receivedById], references: [id])
   createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, receiptNo])
+  @@index([jobCardId])
+  @@index([branchId, paidAt])
 }
 
 // =============================================================================
@@ -2379,7 +2408,7 @@ model MoneyAccount {
   contraTo        ContraEntry[]        @relation("ContraTo")
   feePayments     FeePayment[]
   feeRefunds      FeeRefund[]
-  invoicePayments InvoicePayment[]
+  servicePayments ServicePayment[]
   vendorPayments  VendorPayment[]
   incomes         Income[]
   expenses        Expense[]

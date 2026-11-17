@@ -1,14 +1,25 @@
 "use client";
 
 import {
+  ArrowLeftRightIcon,
+  BoxesIcon,
   BuildingIcon,
+  ClipboardListIcon,
+  ContactIcon,
+  DatabaseIcon,
+  FileTextIcon,
   GitBranchIcon,
   HashIcon,
   HistoryIcon,
   LayoutDashboardIcon,
+  PackageIcon,
+  PlusCircleIcon,
   ReceiptIcon,
+  ScrollTextIcon,
   ShieldCheckIcon,
+  TruckIcon,
   UsersIcon,
+  WrenchIcon,
   type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -38,6 +49,17 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   users: UsersIcon,
   shield: ShieldCheckIcon,
   history: HistoryIcon,
+  wrench: WrenchIcon,
+  intake: PlusCircleIcon,
+  customers: ContactIcon,
+  invoice: FileTextIcon,
+  stock: PackageIcon,
+  parts: BoxesIcon,
+  movements: ScrollTextIcon,
+  transfer: ArrowLeftRightIcon,
+  requests: ClipboardListIcon,
+  purchase: TruckIcon,
+  database: DatabaseIcon,
 };
 
 export function AppSidebar({

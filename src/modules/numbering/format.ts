@@ -78,6 +78,7 @@ export const DEFAULT_FORMATS: Record<DocType, { format: string; padding: number 
   PURCHASE: { format: "{BRANCH}/PU/{FY}/{SEQ}", padding: 5 },
   STOCK_TRANSFER: { format: "{BRANCH}/ST/{FY}/{SEQ}", padding: 5 },
   EMPLOYEE_ID: { format: "{BRANCH}-E{SEQ}", padding: 3 },
+  SERVICE_RECEIPT: { format: "{BRANCH}/SR/{FY}/{SEQ}", padding: 5 },
 };
 
 export const DOC_TYPE_LABELS: Record<DocType, string> = {
@@ -93,4 +94,5 @@ export const DOC_TYPE_LABELS: Record<DocType, string> = {
   PURCHASE: "Purchase",
   STOCK_TRANSFER: "Stock transfer",
   EMPLOYEE_ID: "Employee ID",
+  SERVICE_RECEIPT: "Service receipt",
 };

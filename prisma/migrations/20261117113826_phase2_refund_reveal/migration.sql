@@ -1,0 +1,5 @@
+-- AlterEnum
+ALTER TYPE "AuditAction" ADD VALUE 'REVEAL_SECRET';
+
+-- AlterEnum
+ALTER TYPE "MoneyTxnSource" ADD VALUE 'SERVICE_REFUND';

@@ -24,3 +24,14 @@ export function financialYear(date: Date): string {
 export function financialYearCompact(date: Date): string {
   return financialYear(date).replace("-", "");
 }
+
+/** The IST calendar date of `date` as a UTC-midnight Date — the form Postgres `date` columns round-trip. */
+export function istDateOnly(date: Date): Date {
+  const { year, month, day } = istParts(date);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+/** Add whole days to a date-only value. */
+export function addDays(dateOnly: Date, days: number): Date {
+  return new Date(dateOnly.getTime() + days * 86_400_000);
+}

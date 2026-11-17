@@ -56,7 +56,9 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     name: "Admin",
     description: "Day-to-day system administration.",
     defaultScope: "ALL_BRANCHES",
-    permissions: ALL_PERMISSION_KEYS.filter((k) => k !== "profit.lock" && k !== "partners.manage"),
+    permissions: ALL_PERMISSION_KEYS.filter(
+      (k) => k !== "profit.lock" && k !== "partners.manage" && k !== "jobcards.view_unlock_code",
+    ),
     discountLimitPercent: 100,
     discountLimitAmount: 10_000_000,
   },
@@ -64,7 +66,8 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     name: "Branch Manager",
     description: "Everything in their branches.",
     defaultScope: "ASSIGNED_BRANCHES",
-    permissions: expandPermissions(OPERATIONAL),
+    // Unlock codes: only the assigned engineer and the service manager (see Phase 2 decisions).
+    permissions: expandPermissions(OPERATIONAL).filter((k) => k !== "jobcards.view_unlock_code"),
     discountLimitPercent: 10,
     discountLimitAmount: 5_000,
   },

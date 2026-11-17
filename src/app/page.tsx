@@ -21,9 +21,14 @@ export default async function HomePage() {
           {company?.tagline ?? "Chip-level repair training and electronics service."} The public website is coming in a
           later phase.
         </p>
-        <Button asChild size="lg">
-          <Link href="/login">Staff sign in</Link>
-        </Button>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button asChild size="lg">
+            <Link href="/track">Track your repair</Link>
+          </Button>
+          <Button asChild size="lg" variant="outline">
+            <Link href="/login">Staff sign in</Link>
+          </Button>
+        </div>
       </section>
     </main>
   );

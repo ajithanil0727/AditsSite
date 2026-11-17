@@ -54,3 +54,18 @@ describe("permissions catalogue", () => {
     expect(DEFAULT_ROLES.find((r) => r.name === "Admin")!.permissions).not.toContain("profit.lock");
   });
 });
+
+import { amountInWords } from "./format";
+
+describe("amountInWords (Indian system)", () => {
+  it.each([
+    [0, "Rupees Zero Only"],
+    [5, "Rupees Five Only"],
+    [4500, "Rupees Four Thousand Five Hundred Only"],
+    [123456.5, "Rupees One Lakh Twenty Three Thousand Four Hundred Fifty Six and Fifty Paise Only"],
+    [10_00_00_000, "Rupees Ten Crore Only"],
+    [0.75, "Rupees Zero and Seventy Five Paise Only"],
+  ])("%s", (n, words) => {
+    expect(amountInWords(n)).toBe(words);
+  });
+});

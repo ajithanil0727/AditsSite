@@ -30,9 +30,10 @@ describe.skipIf(!hasDb)("nextDocNumber", () => {
   });
 
   afterAll(async () => {
-    if (!branchId) return;
+    if (!branchId) return void (await db.$disconnect());
     await db.numberSeries.deleteMany({ where: { branchId } });
     await db.branch.delete({ where: { id: branchId } });
+    await db.$disconnect();
   });
 
   it("hands out unique, sequential numbers under concurrency", async () => {

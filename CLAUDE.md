@@ -7,7 +7,8 @@ Brief: `PROJECT_BRIEF.md` · Design: `docs/PHASE_0_DESIGN.md` · Schema: `prisma
 
 - Phase 0 (design): approved 2026-11-17.
 - Phase 1 (foundation): done 2026-11-17. Auth, RBAC + permission matrix, branches, branch switcher, users, audit log, settings (company/logo, GST registrations, number series), theme, admin shell, seed, tests.
-- Next: Phase 2 (service centre + inventory).
+- Phase 2 (service centre + inventory): done 2026-11-17. Master-data editor, parts/stock/movements/adjustments, transfers, purchases + vendor payments, part requests, job cards (intake → diagnosis → quote → repair → QC → ready → delivered), GST invoices, advances/payments/refunds with receipts, print views (invoice, job card, receipt), public repair tracker (/track).
+- Next: Phase 3 (students + fees).
 
 ## Stack
 
@@ -19,6 +20,8 @@ Read `node_modules/next/dist/docs/` before using a Next API you haven't used her
 - `npm run dev` · `npm run build` · `npm run check` (typecheck + lint + vitest) · `npm run test:e2e`
 - `npm run db:migrate` · `npm run db:seed` · `npm run db:studio`
 - Local DB on this machine (no Docker): `npx prisma dev -d --name mgmt` (TCP 51214, shadow 51215). It allows 10 connections in total and doesn't free closed ones. Keep `DATABASE_POOL_MAX=3`, and restart it if it starts refusing connections.
+- After `prisma migrate dev`, run `npm run db:generate`: Prisma 7 no longer regenerates the client automatically.
+- The local `prisma dev` DB leaks connections across test runs; if tests or pages hang with "Server has closed the connection", restart it. Tests use a pool of 2 and run files one at a time.
 - `prisma migrate reset` is blocked when run by an AI agent. Ask the user to run it, or make targeted data fixes instead.
 
 ## Conventions
@@ -49,6 +52,20 @@ Read `node_modules/next/dist/docs/` before using a Next API you haven't used her
 - Stock: weighted average cost per branch. Payroll: simple (no PF/ESI/PT/TDS).
 - Role scope: union of roles; the widest scope per permission wins. OWN = assigned branches + own records.
 
+### Phase 2 decisions (service + inventory)
+
+- **Prices are GST-inclusive.** Registered branch: invoice splits taxable + GST per line (`modules/tax/gst.ts`, paise maths, per-line rounding, total rounded to the rupee). Unregistered branch: no GST, "Non-GST invoice".
+- **CGST+SGST** normally; **IGST** only when the customer has a GSTIN from another state.
+- Default GST 18% for parts and labour when an item has no rate (`DEFAULT_SERVICE_GST`).
+- **Repair may start** if charges ≤ the intake estimate; above it needs an **approved quotation** (`repairAllowed`). Quote decisions are recorded by staff (phone / in person / WhatsApp).
+- **Warranty repeat job**: labour always free; the service manager (`jobcards.warranty_decide`) can make parts free for the job or per part. Warranty days come from the most specific Warranty rule and start on delivery (only for jobs that went through repair).
+- **Advance** optional at intake, receipted (SERVICE_RECEIPT series), adjusted on the invoice; refundable. Payments/refunds go to the day book (`MoneyTransaction`).
+- **Delivery** needs an invoice when there are charges and full payment, unless the user has `jobcards.deliver_credit` (then it's flagged and the invoice shows in the dues list).
+- **Unlock codes**: AES-256-GCM (`DATA_ENCRYPTION_KEY`), revealed only by the assigned engineer or `jobcards.view_unlock_code` (Owner, Service Manager), every reveal audited (REVEAL_SECRET), wiped on delivery/cancel.
+- **Stock**: no negative stock; row-locked (`SELECT … FOR UPDATE`) movements via `inventory/stock.service.ts` only. Unregistered branches add purchase GST to the part cost (no input credit). Transfers move at the sender's average cost.
+- Invoices can be cancelled before delivery (number stays used; money stays on the job). After delivery, credit notes (Phase 5).
+- Printing is HTML print views (`/print/*`, "Print / Save as PDF"), not server-generated PDF files yet.
+
 ## Open points (asked in Phase 0, unanswered)
 
-Per-payment tax invoices on taxable courses; place of supply = branch state; P&L timing (fees on receipt, service on invoice); warranty comeback (labour only vs labour + parts); real owner/branch list for the seed; whether to store device unlock codes (encrypted).
+Per-payment tax invoices on taxable courses; P&L timing (fees on receipt, service on invoice); real owner/branch list for the seed.

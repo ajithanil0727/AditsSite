@@ -12,8 +12,9 @@ import { ALL_PERMISSIONS } from "../../src/lib/permissions";
 import { hashPassword } from "../../src/modules/auth/password";
 import { DEFAULT_FORMATS } from "../../src/modules/numbering/format";
 import { DEFAULT_ROLES } from "../../src/modules/rbac/default-roles";
+import { seedPhase2 } from "./phase2";
 
-const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
+const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL!, max: 1 }) });
 const PASSWORD = process.env.SEED_DEFAULT_PASSWORD ?? "Demo@12345";
 
 const COMPANY = {
@@ -275,6 +276,8 @@ async function main() {
   }
 
   // --- Permissions (sync catalogue) ---
+  const knownKeys = new Set((await db.permission.findMany({ select: { key: true } })).map((p) => p.key));
+  const firstRun = knownKeys.size === 0;
   for (const p of ALL_PERMISSIONS) {
     await db.permission.upsert({
       where: { key: p.key },
@@ -285,6 +288,25 @@ async function main() {
   const permIds = new Map(
     (await db.permission.findMany({ select: { id: true, key: true } })).map((p) => [p.key, p.id]),
   );
+
+  // Permissions added to the catalogue since the last seed go to the default roles that should have them.
+  // Existing grants and admin edits are never removed.
+  if (!firstRun) {
+    for (const r of DEFAULT_ROLES) {
+      const role = await db.role.findUnique({
+        where: { organizationId_name: { organizationId: org.id, name: r.name } },
+      });
+      if (!role) continue;
+      const added = r.permissions.filter((k) => !knownKeys.has(k));
+      for (const key of added) {
+        await db.rolePermission.upsert({
+          where: { roleId_permissionId: { roleId: role.id, permissionId: permIds.get(key)! } },
+          create: { roleId: role.id, permissionId: permIds.get(key)! },
+          update: {},
+        });
+      }
+    }
+  }
 
   // --- Roles (create if missing; never overwrite admin edits) ---
   const roleIds: Record<string, { id: string; scope: RoleScope }> = {};
@@ -365,6 +387,15 @@ async function main() {
       });
     }
   }
+
+  // --- Phase 2: service + inventory ---
+  const userIds = Object.fromEntries(
+    (await db.user.findMany({ where: { organizationId: org.id }, select: { id: true, email: true } })).map((u) => [
+      u.email,
+      u.id,
+    ]),
+  );
+  await seedPhase2(db, { orgId: org.id, branchIds, userIds });
 
   console.log(`Seeded: ${BRANCHES.length} branches, ${DEFAULT_ROLES.length} roles, ${USERS.length} users.`);
   console.log(`Sign in with e.g. arun@demo.test / ${PASSWORD} (owner) or engineer.koc@demo.test (engineer).`);
