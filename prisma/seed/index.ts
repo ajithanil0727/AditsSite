@@ -13,6 +13,7 @@ import { hashPassword } from "../../src/modules/auth/password";
 import { DEFAULT_FORMATS } from "../../src/modules/numbering/format";
 import { DEFAULT_ROLES } from "../../src/modules/rbac/default-roles";
 import { seedPhase2 } from "./phase2";
+import { seedPhase3 } from "./phase3";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL!, max: 1 }) });
 const PASSWORD = process.env.SEED_DEFAULT_PASSWORD ?? "Demo@12345";
@@ -396,6 +397,7 @@ async function main() {
     ]),
   );
   await seedPhase2(db, { orgId: org.id, branchIds, userIds });
+  await seedPhase3(db, { orgId: org.id, branchIds, userIds });
 
   console.log(`Seeded: ${BRANCHES.length} branches, ${DEFAULT_ROLES.length} roles, ${USERS.length} users.`);
   console.log(`Sign in with e.g. arun@demo.test / ${PASSWORD} (owner) or engineer.koc@demo.test (engineer).`);

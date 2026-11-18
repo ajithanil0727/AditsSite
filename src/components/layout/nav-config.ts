@@ -21,7 +21,14 @@ export type NavIcon =
   | "transfer"
   | "requests"
   | "purchase"
-  | "database";
+  | "database"
+  | "admission"
+  | "students"
+  | "courses"
+  | "batches"
+  | "dues"
+  | "receipts"
+  | "approvals";
 
 export type NavItem = {
   title: string;
@@ -48,6 +55,28 @@ export const NAV: NavGroup[] = [
   {
     label: "Overview",
     items: [{ title: "Dashboard", href: "/admin", icon: "dashboard", permissions: ["dashboard.view"] }],
+  },
+  {
+    label: "Students",
+    items: [
+      { title: "New admission", href: "/admin/students/new", icon: "admission", permissions: ["students.create"] },
+      { title: "Students", href: "/admin/students", icon: "students", permissions: ["students.view"], exact: true },
+      { title: "Batches", href: "/admin/batches", icon: "batches", permissions: ["batches.view"] },
+      { title: "Courses", href: "/admin/courses", icon: "courses", permissions: ["courses.view"] },
+    ],
+  },
+  {
+    label: "Fees",
+    items: [
+      { title: "Dues", href: "/admin/fees/dues", icon: "dues", permissions: ["fees.view"] },
+      { title: "Receipts", href: "/admin/fees/payments", icon: "receipts", permissions: ["fees.view"] },
+      {
+        title: "Approvals",
+        href: "/admin/fees/approvals",
+        icon: "approvals",
+        permissions: ["fees.discount_approve", "fees.refund_approve"],
+      },
+    ],
   },
   {
     label: "Service",
@@ -125,6 +154,13 @@ export const SEGMENT_LABELS: Record<string, string> = {
   movements: "Movements",
   purchases: "Purchases",
   print: "Print",
+  students: "Students",
+  courses: "Courses",
+  batches: "Batches",
+  fees: "Fees",
+  dues: "Dues",
+  payments: "Receipts",
+  approvals: "Approvals",
   new: "New",
   "no-access": "No access",
   deviceType: "Device types",
@@ -144,4 +180,4 @@ export const SEGMENT_LABELS: Record<string, string> = {
 };
 
 /** Path segments with no page of their own (breadcrumbs render them as text). */
-export const NON_LINK_SEGMENTS = new Set(["/admin/settings", "/admin/service", "/admin/inventory"]);
+export const NON_LINK_SEGMENTS = new Set(["/admin/settings", "/admin/service", "/admin/inventory", "/admin/fees"]);

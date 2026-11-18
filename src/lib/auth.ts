@@ -29,7 +29,8 @@ export const auth = betterAuth({
     window: 60,
     max: 100,
     customRules: {
-      "/sign-in/email": { window: 60, max: 5 },
+      // 5 attempts per minute per IP. Only the Playwright test server raises it (AUTH_LOGIN_MAX_PER_MINUTE).
+      "/sign-in/email": { window: 60, max: Number(process.env.AUTH_LOGIN_MAX_PER_MINUTE ?? 5) },
     },
   },
   databaseHooks: {

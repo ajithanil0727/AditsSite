@@ -8,7 +8,8 @@ Brief: `PROJECT_BRIEF.md` · Design: `docs/PHASE_0_DESIGN.md` · Schema: `prisma
 - Phase 0 (design): approved 2026-11-17.
 - Phase 1 (foundation): done 2026-11-17. Auth, RBAC + permission matrix, branches, branch switcher, users, audit log, settings (company/logo, GST registrations, number series), theme, admin shell, seed, tests.
 - Phase 2 (service centre + inventory): done 2026-11-17. Master-data editor, parts/stock/movements/adjustments, transfers, purchases + vendor payments, part requests, job cards (intake → diagnosis → quote → repair → QC → ready → delivered), GST invoices, advances/payments/refunds with receipts, print views (invoice, job card, receipt), public repair tracker (/track).
-- Next: Phase 3 (students + fees).
+- Phase 3 (students + fees): done 2026-11-18. Courses (fee plans, syllabus), batches, admissions (editable instalment schedule), student profiles, fee collection + receipts, receipt cancellation, discounts with approval, refunds (request → approve → pay), transfers, dropout, instalment waivers, batch attendance, dues / receipts / approvals screens, printable fee receipt.
+- Next: Phase 4 (public website + content manager + enquiries/CRM).
 
 ## Stack
 
@@ -66,6 +67,19 @@ Read `node_modules/next/dist/docs/` before using a Next API you haven't used her
 - Invoices can be cancelled before delivery (number stays used; money stays on the job). After delivery, credit notes (Phase 5).
 - Printing is HTML print views (`/print/*`, "Print / Save as PDF"), not server-generated PDF files yet.
 
+### Phase 3 decisions (students + fees)
+
+- **Fees get receipts only** (FEE_RECEIPT series), no tax invoices yet; each course keeps its GST mode for later (waiting for the CA). So refunds have no credit note.
+- Schedules come from a course fee plan and are **editable at admission**; they must add up to the net fee (`fees/fee-logic.ts`).
+- Payments settle the **oldest unpaid instalment first**; over-payment is refused.
+- **Discounts**: within the user's role limits (both % and ₹) apply immediately; above, a pending request. Approvers can't approve their own request and only within their own limit. Approved discounts reduce the **last unpaid instalments first**.
+- **Refunds**: request → approve (not your own) → pay out (day book OUT). Refundable = received − refunded − pending/approved refunds.
+- **Branch transfer**: paid fees stay with the old branch; future collections are the new branch's (enrollment.branchId moves; receipts use the collecting branch's series).
+- **Dropout** waives all unpaid instalments automatically. "Completed" keeps any dues in the dues list.
+- Receipts can be cancelled (wrong entry): allocations reversed, day-book reversal (ADJUSTMENT OUT), number stays used.
+- Attendance: one session per batch per day, re-saving overwrites; trainers (OWN) only mark their own batches; no future dates. Late = present, half-day = ½, leave/holiday excluded from %.
+- Login rate limit is env-configurable (`AUTH_LOGIN_MAX_PER_MINUTE`, default 5); only the Playwright web server raises it.
+
 ## Open points (asked in Phase 0, unanswered)
 
-Per-payment tax invoices on taxable courses; P&L timing (fees on receipt, service on invoice); real owner/branch list for the seed.
+Tax invoices on GST-applicable course fees (waiting for the CA); P&L timing (fees on receipt, service on invoice); real owner/branch list for the seed.

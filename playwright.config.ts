@@ -25,6 +25,8 @@ export default defineConfig({
     command: "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: true,
+    // Many sign-ins in a row during the suite; production keeps the default of 5 per minute.
+    env: { AUTH_LOGIN_MAX_PER_MINUTE: "100" },
     timeout: 120_000,
   },
 });

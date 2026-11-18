@@ -35,6 +35,20 @@ test("intake to delivery, then the customer tracks it", async ({ page }) => {
   test.setTimeout(180_000);
   await signIn(page, "arun@demo.test");
 
+  // --- Make sure a display is in stock (each run uses one): stock adjustment through the UI ---
+  await page.goto("/admin/inventory/stock");
+  await page.getByRole("button", { name: "Adjust stock" }).click();
+  const adjust = page.getByRole("dialog");
+  await adjust.getByRole("combobox", { name: "Branch" }).click();
+  await page.getByRole("option", { name: "Kochi" }).click();
+  await adjust.getByRole("combobox").filter({ hasText: "Select a part" }).click();
+  await page.getByPlaceholder("Search name or SKU…").fill("DSP-A52");
+  await page.getByRole("option", { name: /Galaxy A52/ }).click();
+  await adjust.getByLabel("Quantity").fill("1");
+  await adjust.getByLabel("Reason").fill("E2E test stock");
+  await adjust.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Stock updated").first()).toBeVisible();
+
   // --- Intake ---
   await page.goto("/admin/service/intake");
   await pickSelect(page, "Branch", "Kochi");

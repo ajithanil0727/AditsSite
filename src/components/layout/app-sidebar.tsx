@@ -2,6 +2,13 @@
 
 import {
   ArrowLeftRightIcon,
+  BadgeCheckIcon,
+  BookOpenIcon,
+  CalendarClockIcon,
+  GraduationCapIcon,
+  ReceiptIndianRupeeIcon,
+  UserPlusIcon,
+  UsersRoundIcon,
   BoxesIcon,
   BuildingIcon,
   ClipboardListIcon,
@@ -60,6 +67,13 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   requests: ClipboardListIcon,
   purchase: TruckIcon,
   database: DatabaseIcon,
+  admission: UserPlusIcon,
+  students: GraduationCapIcon,
+  courses: BookOpenIcon,
+  batches: UsersRoundIcon,
+  dues: CalendarClockIcon,
+  receipts: ReceiptIndianRupeeIcon,
+  approvals: BadgeCheckIcon,
 };
 
 export function AppSidebar({
@@ -73,7 +87,12 @@ export function AppSidebar({
 }) {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
-  const isActive = (href: string) => (href === "/admin" ? pathname === href : pathname.startsWith(href));
+  const isActive = (href: string, exact?: boolean) =>
+    href === "/admin"
+      ? pathname === href
+      : exact
+        ? pathname === href || (pathname.startsWith(href + "/") && !pathname.endsWith("/new"))
+        : pathname.startsWith(href);
 
   return (
     <Sidebar collapsible="icon">
@@ -105,7 +124,7 @@ export function AppSidebar({
                   const Icon = ICONS[item.icon];
                   return (
                     <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.title}>
+                      <SidebarMenuButton asChild isActive={isActive(item.href, item.exact)} tooltip={item.title}>
                         <Link href={item.href} onClick={() => setOpenMobile(false)}>
                           <Icon />
                           <span>{item.title}</span>
