@@ -14,25 +14,13 @@ import { DEFAULT_FORMATS } from "../../src/modules/numbering/format";
 import { DEFAULT_ROLES } from "../../src/modules/rbac/default-roles";
 import { seedPhase2 } from "./phase2";
 import { seedPhase3 } from "./phase3";
+import { ADITS_COMPANY, applyBrand } from "./brand";
 import { seedPhase4 } from "./phase4";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL!, max: 1 }) });
 const PASSWORD = process.env.SEED_DEFAULT_PASSWORD ?? "Demo@12345";
 
-const COMPANY = {
-  name: "ChipSkill Institute & Service",
-  legalName: "ChipSkill Technologies LLP",
-  tagline: "Learn chip-level repair. Get devices fixed right.",
-  phone: "9847012345",
-  email: "hello@chipskill.example",
-  website: "https://chipskill.example",
-  addressLine1: "2nd Floor, Lulu Square, MG Road",
-  addressLine2: "Ravipuram",
-  city: "Kochi",
-  state: "Kerala",
-  pincode: "682016",
-  logoFileId: null,
-};
+const COMPANY = ADITS_COMPANY;
 
 const BRANCHES: {
   code: string;
@@ -400,6 +388,7 @@ async function main() {
   await seedPhase2(db, { orgId: org.id, branchIds, userIds });
   await seedPhase3(db, { orgId: org.id, branchIds, userIds });
   await seedPhase4(db, { orgId: org.id, branchIds, userIds });
+  await applyBrand(db, { orgId: org.id, branchIds, userIds });
 
   console.log(`Seeded: ${BRANCHES.length} branches, ${DEFAULT_ROLES.length} roles, ${USERS.length} users.`);
   console.log(`Sign in with e.g. arun@demo.test / ${PASSWORD} (owner) or engineer.koc@demo.test (engineer).`);

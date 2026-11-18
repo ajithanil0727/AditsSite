@@ -94,8 +94,8 @@ Read `node_modules/next/dist/docs/` before using a Next API you haven't used her
 - **Conversion**: admitting a student / opening a job card for a phone with an open lead of that type marks it won and links `Lead.enrollmentId` / `Lead.jobCardId` (`convertLeadOnCreate`). The Convert button opens `/admin/students/new?lead=` or `/admin/service/intake?lead=` pre-filled.
 - **Notifications**: in-app only (`notify()` inside the transaction); the bell polls every minute and shows today's / overdue follow-ups. Email/WhatsApp later with message templates.
 - Course fees on the site: per-course `showFeeOnWebsite`; off = "Contact us for fees".
-- Seed content is a neutral placeholder; the owner will send real brand details (name, numbers, contacts) to replace it.
+- **Brand**: ADITS (ADITS Innovative), content taken from the old site (`D:\Adits\Adits`): `prisma/seed/brand.ts` runs once (marker Setting `seed.brand`) and uploads the processed images in `prisma/seed/assets/adits/` (logo = the yellow mark only; the original's white lettering is for dark backgrounds). Only facts from the old site are used: demo testimonials, stories, FAQs, banner and service prices stay unpublished, and the numbers section is left out until real figures exist. Branches and courses in the seed are still the demo set (tests depend on KOC/TVM and MOB-ADV).
 
 ## Open points (asked in Phase 0, unanswered)
 
-Tax invoices on GST-applicable course fees (waiting for the CA); P&L timing (fees on receipt, service on invoice); real owner/branch list for the seed; real brand details for the website content. Certificate verification (`/verify`) comes with certificates.
+Tax invoices on GST-applicable course fees (waiting for the CA); P&L timing (fees on receipt, service on invoice); real owner/branch list for the seed; real branches (Palakkad, Mukkam: kinds, GSTINs, codes, owners) and real courses + fees to replace the demo seed; ADITS email, opening hours, social links and real numbers/testimonials. Certificate verification (`/verify`) comes with certificates.

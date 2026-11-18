@@ -183,7 +183,17 @@ function Features({ c }: { c: C }) {
     <section className="py-16 sm:py-20">
       <Container>
         <SectionHeading title={c.title} subtitle={c.subtitle} />
-        <div data-stagger className={cn("grid gap-5", items.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2")}>
+        <div
+          data-stagger
+          className={cn(
+            "grid gap-5",
+            items.length === 4
+              ? "sm:grid-cols-2 lg:grid-cols-4"
+              : items.length >= 3
+                ? "md:grid-cols-3"
+                : "md:grid-cols-2",
+          )}
+        >
           {items.map((f, i) => (
             <div
               key={i}
