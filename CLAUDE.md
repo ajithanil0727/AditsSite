@@ -9,7 +9,8 @@ Brief: `PROJECT_BRIEF.md` · Design: `docs/PHASE_0_DESIGN.md` · Schema: `prisma
 - Phase 1 (foundation): done 2026-11-17. Auth, RBAC + permission matrix, branches, branch switcher, users, audit log, settings (company/logo, GST registrations, number series), theme, admin shell, seed, tests.
 - Phase 2 (service centre + inventory): done 2026-11-17. Master-data editor, parts/stock/movements/adjustments, transfers, purchases + vendor payments, part requests, job cards (intake → diagnosis → quote → repair → QC → ready → delivered), GST invoices, advances/payments/refunds with receipts, print views (invoice, job card, receipt), public repair tracker (/track).
 - Phase 3 (students + fees): done 2026-11-18. Courses (fee plans, syllabus), batches, admissions (editable instalment schedule), student profiles, fee collection + receipts, receipt cancellation, discounts with approval, refunds (request → approve → pay), transfers, dropout, instalment waivers, batch attendance, dues / receipts / approvals screens, printable fee receipt.
-- Next: Phase 4 (public website + content manager + enquiries/CRM).
+- Phase 4 (website + CRM): done 2026-11-18. Public site (GSAP home, pastel pages, course/service pages, enquiry + repair booking forms, sitemap/robots), content manager (page sections with draft → preview → publish, menus, media library with crop + alt text, services/testimonials/stories/gallery/FAQs/banners/companies, site settings), enquiries/CRM (round-robin, follow-ups, timeline, convert to admission / job card, conversion report), notification bell.
+- Next: Phase 5 (accounts).
 
 ## Stack
 
@@ -80,6 +81,21 @@ Read `node_modules/next/dist/docs/` before using a Next API you haven't used her
 - Attendance: one session per batch per day, re-saving overwrites; trainers (OWN) only mark their own batches; no future dates. Late = present, half-day = ½, leave/holiday excluded from %.
 - Login rate limit is env-configurable (`AUTH_LOGIN_MAX_PER_MINUTE`, default 5); only the Playwright web server raises it.
 
+### Phase 4 decisions (website + CRM)
+
+- **Public site** lives in `src/app/(public)`; data comes only from `modules/website/site.data.ts` (`"use cache"`, tag `site`). Every CMS / course / branch / company change calls `revalidateSite()` (`updateTag("site")`). Dynamic routes await `params` inside `<Suspense>` (no `generateStaticParams`: it must be non-empty with Cache Components). Client hooks like `usePathname` in the public layout break prerendering of dynamic routes, so don't add them there.
+- **Sections**: types, editor fields and defaults in `modules/website/sections.ts` (field descriptors + Zod in `fields.ts`). Editing changes the draft columns of `PageSection`; **Publish** copies them to `published*`; never-published sections have `publishedSortOrder = null`. Page title/SEO apply immediately. System pages (fixed slugs) are always live; custom pages need publishing. Preview: `/preview/[pageId]` (signed in, `website.view`).
+- **Motion**: home page uses GSAP via data attributes (`components/site/home-motion.tsx`; the pinned row is created before other ScrollTriggers). Inner pages use `reveal.tsx` (IntersectionObserver + CSS). Reduced motion = no animation. Content is server-rendered and visible without JS. The hidden browser pane doesn't run rAF; check motion with headless Playwright.
+- **Rich text** is Markdown (`MarkdownEditor`, rendered by `components/cms/markdown.tsx`; raw HTML ignored, inline images only from `/api/files`). Course / service descriptions are Markdown strings in their `Json` column.
+- **Media**: public website images only (PNG/JPG/WebP, ≤5 MB), cropped client-side (react-easy-crop → WebP/PNG), alt text + folder. Images in use can't be deleted (`mediaUsage`). next/image only optimises `/api/files/**`.
+- **Website leads**: visitor picks the branch (institute branches for course enquiries, service branches for bookings). Spam: honeypot + 3 s minimum fill time + per-IP (5/10 min) and per-phone (3/h) limits, in memory; bots get a fake "thank you".
+- **Round-robin**: users assigned to the branch whose role gives `leads.receive` at OWN/ASSIGNED scope (all-branch roles hold it for grant purposes but aren't in the rotation; Branch Manager doesn't get it by default). Next = longest since last lead, serialised with an advisory lock. Nobody eligible → unassigned and the branch's `leads.assign` users are notified.
+- **Duplicates**: an enquiry from a phone with an open lead of the same type is added to it (ENQUIRY activity, `enquiryCount`), never a new lead.
+- **Conversion**: admitting a student / opening a job card for a phone with an open lead of that type marks it won and links `Lead.enrollmentId` / `Lead.jobCardId` (`convertLeadOnCreate`). The Convert button opens `/admin/students/new?lead=` or `/admin/service/intake?lead=` pre-filled.
+- **Notifications**: in-app only (`notify()` inside the transaction); the bell polls every minute and shows today's / overdue follow-ups. Email/WhatsApp later with message templates.
+- Course fees on the site: per-course `showFeeOnWebsite`; off = "Contact us for fees".
+- Seed content is a neutral placeholder; the owner will send real brand details (name, numbers, contacts) to replace it.
+
 ## Open points (asked in Phase 0, unanswered)
 
-Tax invoices on GST-applicable course fees (waiting for the CA); P&L timing (fees on receipt, service on invoice); real owner/branch list for the seed.
+Tax invoices on GST-applicable course fees (waiting for the CA); P&L timing (fees on receipt, service on invoice); real owner/branch list for the seed; real brand details for the website content. Certificate verification (`/verify`) comes with certificates.

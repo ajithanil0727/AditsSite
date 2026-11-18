@@ -13,6 +13,7 @@ import {
   validateSchedule,
   type Instalment,
 } from "@/modules/fees/fee-logic";
+import { convertLeadOnCreate } from "@/modules/leads/leads.service";
 import { nextDocNumber } from "@/modules/numbering/numbering.service";
 import { can, canAccessBranch, scopeOf, type Access } from "@/modules/rbac/access";
 import { ActionError, type ActionContext } from "@/modules/rbac/action";
@@ -295,6 +296,15 @@ export async function admit(ctx: ActionContext, input: z.output<typeof admission
       entityId: enrollment.id,
       branchId: input.branchId,
       after: enrollment,
+    });
+
+    await convertLeadOnCreate(tx, ctx, {
+      type: "COURSE",
+      phone: student.phone,
+      leadId: can(ctx.user.access, "leads.convert") ? input.leadId : null,
+      enrollmentId: enrollment.id,
+      studentId: student.id,
+      label: `Admitted to ${course.name} (${student.studentCode})`,
     });
 
     if (discountPaise > 0) {

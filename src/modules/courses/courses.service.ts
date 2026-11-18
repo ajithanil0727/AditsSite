@@ -1,5 +1,6 @@
 import "server-only";
 import type { z } from "zod";
+import { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/modules/audit/audit.service";
 import { canAccessBranch } from "@/modules/rbac/access";
@@ -17,10 +18,18 @@ const dateOnly = (ymd: string) => new Date(`${ymd}T00:00:00.000Z`);
 export async function saveCourse(ctx: ActionContext, input: z.output<typeof courseSchema>) {
   const orgId = ctx.user.organizationId;
   const { id, ...rest } = input;
+  if (rest.imageId) {
+    const img = await db.fileAsset.findFirst({
+      where: { id: rest.imageId, organizationId: orgId, deletedAt: null, isPublic: true },
+    });
+    if (!img) throw new ActionError("Pick the course image from the media library.");
+  }
   const data = {
     ...rest,
     slug: rest.slug || slugify(rest.name),
     taxRateId: rest.gstMode === "EXEMPT" ? null : rest.taxRateId,
+    // Markdown for the public course page, stored as a JSON string.
+    description: rest.description ? rest.description : Prisma.DbNull,
   };
   return db.$transaction(async (tx) => {
     if (!id) {

@@ -78,6 +78,7 @@ export const admissionSchema = z
   .object({
     branchId: z.string().min(1, "Select the branch"),
     studentId: optId, // existing student (second course)
+    leadId: optId, // converting this enquiry
     student: studentDetailsSchema,
     courseId: z.string().min(1, "Select the course"),
     batchId: optId,

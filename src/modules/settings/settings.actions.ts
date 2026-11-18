@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getCurrentUser, getRequestMeta } from "@/modules/auth/current";
 import { saveUpload, IMAGE_TYPES } from "@/modules/files/files.service";
 import { can } from "@/modules/rbac/access";
+import { revalidateSite } from "@/modules/website/site.data";
 import { ActionError, defineAction, type ActionResult } from "@/modules/rbac/action";
 import { saveGstRegistration } from "./gst.service";
 import { updateNumberSeries } from "./number-series.service";
@@ -15,6 +16,7 @@ export const saveCompanyProfileAction = defineAction(
   { permission: "settings.update", schema: companyProfileSchema },
   async (input, ctx) => {
     await updateCompanyProfile(ctx, input);
+    revalidateSite();
     refresh();
   },
 );

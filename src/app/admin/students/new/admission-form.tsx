@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon, SearchIcon, Trash2Icon, UserCheckIcon } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
@@ -32,6 +32,7 @@ export function AdmissionForm({
   today,
   limits,
   canDiscount,
+  lead,
 }: {
   branches: Opt[];
   defaultBranchId: string;
@@ -41,6 +42,16 @@ export function AdmissionForm({
   today: string;
   limits: { percent: number; amount: number };
   canDiscount: boolean;
+  /** Converting an enquiry: pre-fill from it and link it on save. */
+  lead?: {
+    id: string;
+    name: string;
+    phone: string;
+    altPhone: string | null;
+    email: string | null;
+    city: string | null;
+    courseId: string | null;
+  } | null;
 }) {
   const [pending, startTransition] = useTransition();
   const [looking, startLookup] = useTransition();
@@ -52,22 +63,23 @@ export function AdmissionForm({
     defaultValues: {
       branchId: defaultBranchId,
       studentId: null,
+      leadId: lead?.id ?? null,
       student: {
-        name: "",
-        phone: "",
-        altPhone: "",
-        email: "",
+        name: lead?.name ?? "",
+        phone: lead?.phone ?? "",
+        altPhone: lead?.altPhone ?? "",
+        email: lead?.email ?? "",
         dob: "",
         gender: null,
         guardianName: "",
         guardianPhone: "",
         address: "",
-        city: "",
+        city: lead?.city ?? "",
         state: "",
         pincode: "",
         qualification: "",
       },
-      courseId: "",
+      courseId: lead?.courseId && courses.some((c) => c.value === lead.courseId) ? lead.courseId : "",
       batchId: null,
       enrolledAt: today,
       discountAmount: "",
@@ -133,6 +145,20 @@ export function AdmissionForm({
       toast.success(`Found ${res.data.details.name} (${res.data.studentCode})`);
     });
 
+  // Converting an enquiry: check straight away whether this phone is already a student.
+  const leadPhone = lead?.phone;
+  useEffect(() => {
+    if (!leadPhone) return;
+    startLookup(async () => {
+      const res = await findStudentAction({ phone: leadPhone });
+      if (res.ok && res.data) {
+        setExisting({ code: res.data.studentCode, courses: res.data.courses });
+        form.setValue("studentId", res.data.id);
+        form.setValue("student", { ...res.data.details, gender: res.data.details.gender ?? null });
+      }
+    });
+  }, [leadPhone, form]);
+
   const onSubmit = form.handleSubmit(() =>
     startTransition(async () => {
       const res = await admitAction(form.getValues());
@@ -145,6 +171,11 @@ export function AdmissionForm({
 
   return (
     <form onSubmit={onSubmit} noValidate className="grid max-w-5xl gap-6">
+      {lead && (
+        <p className="rounded-md bg-lavender px-3 py-2 text-sm text-lavender-foreground">
+          Converting the enquiry from <strong>{lead.name}</strong>. Saving the admission marks it as won.
+        </p>
+      )}
       <Card>
         <CardHeader>
           <CardTitle>Student</CardTitle>

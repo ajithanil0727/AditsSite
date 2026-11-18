@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
+import { revalidateSite } from "@/modules/website/site.data";
 import { defineAction } from "@/modules/rbac/action";
 import { batchSchema, courseSchema, feePlanSchema, modulesSchema } from "./courses.schemas";
 import { saveBatch, saveCourse, saveFeePlan, saveModules } from "./courses.service";
@@ -11,6 +12,7 @@ export const saveCourseAction = defineAction(
   async (input, ctx) => {
     const id = await saveCourse(ctx, input);
     if (!input.id) redirect(`/admin/courses/${id}`);
+    revalidateSite();
     refresh();
   },
 );
@@ -19,6 +21,7 @@ export const saveModulesAction = defineAction(
   { permission: "courses.manage", schema: modulesSchema },
   async (input, ctx) => {
     await saveModules(ctx, input);
+    revalidateSite();
     refresh();
   },
 );

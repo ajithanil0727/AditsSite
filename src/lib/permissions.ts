@@ -44,6 +44,7 @@ export const PERMISSION_MODULES = {
       assign: "Assign",
       convert: "Convert",
       export: "Export",
+      receive: "Receive new leads (round-robin)",
     },
   },
   courses: { label: "Courses", actions: { view: "View", manage: "Manage" } },

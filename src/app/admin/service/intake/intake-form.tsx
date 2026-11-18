@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SearchIcon, ShieldCheckIcon, UserCheckIcon, XIcon } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
@@ -37,6 +37,7 @@ export function IntakeForm({
   options,
   engineers,
   payment,
+  lead,
 }: {
   branches: Opt[];
   defaultBranchId: string;
@@ -48,6 +49,17 @@ export function IntakeForm({
   };
   engineers: (Opt & { branchIds: string[] })[];
   payment: { modes: (Opt & { requiresReference: boolean })[]; accounts: (Opt & { branchId: string })[] };
+  /** Converting a repair enquiry: pre-fill from it and link it on save. */
+  lead?: {
+    id: string;
+    name: string;
+    phone: string;
+    altPhone: string | null;
+    email: string | null;
+    deviceTypeId: string | null;
+    deviceText: string | null;
+    problemText: string | null;
+  } | null;
 }) {
   const [pending, startTransition] = useTransition();
   const [looking, startLookup] = useTransition();
@@ -59,23 +71,27 @@ export function IntakeForm({
     resolver: zodResolver(intakeSchema),
     defaultValues: {
       branchId: defaultBranchId,
+      leadId: lead?.id ?? null,
       customerId: null,
-      customerName: "",
-      customerPhone: "",
-      customerAltPhone: "",
-      customerEmail: "",
+      customerName: lead?.name ?? "",
+      customerPhone: lead?.phone ?? "",
+      customerAltPhone: lead?.altPhone ?? "",
+      customerEmail: lead?.email ?? "",
       customerAddress: "",
       customerGstin: "",
       deviceId: null,
-      deviceTypeId: options.deviceTypes[0]?.value ?? "",
+      deviceTypeId:
+        lead?.deviceTypeId && options.deviceTypes.some((d) => d.value === lead.deviceTypeId)
+          ? lead.deviceTypeId
+          : (options.deviceTypes[0]?.value ?? ""),
       brandId: null,
       modelId: null,
-      modelText: "",
+      modelText: lead?.deviceText ?? "",
       imei: "",
       serialNo: "",
       color: "",
       problemCategoryId: null,
-      problemReported: "",
+      problemReported: lead?.problemText ?? "",
       accessories: [],
       conditionNotes: "",
       unlockCode: "",
@@ -111,6 +127,19 @@ export function IntakeForm({
     });
   };
 
+  // Converting an enquiry: look the customer up straight away.
+  const leadPhone = lead?.phone;
+  useEffect(() => {
+    if (!leadPhone) return;
+    startLookup(async () => {
+      const res = await lookupCustomerAction({ phone: leadPhone });
+      if (!res.ok) return;
+      setFound(res.data);
+      form.setValue("customerId", res.data?.id ?? null);
+      if (res.data) form.setValue("customerName", res.data.name);
+    });
+  }, [leadPhone, form]);
+
   const checkComeback = (input: { deviceId?: string | null; imei?: string | null; serialNo?: string | null }) =>
     startLookup(async () => {
       const res = await comebackCheckAction(input);
@@ -135,6 +164,11 @@ export function IntakeForm({
 
   return (
     <form onSubmit={onSubmit} noValidate className="grid max-w-5xl gap-6">
+      {lead && (
+        <p className="rounded-md bg-lavender px-3 py-2 text-sm text-lavender-foreground">
+          Converting the repair enquiry from <strong>{lead.name}</strong>. Opening the job card marks it as won.
+        </p>
+      )}
       {/* Customer */}
       <Card>
         <CardHeader>

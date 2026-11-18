@@ -113,8 +113,23 @@ export async function saveMaster(ctx: ActionContext, def: MasterDef, input: Reco
     if (others === 0) throw new ActionError(`Keep at least one active status for the ${key.replace("_", " ")} stage.`);
   }
 
+  if (def.kind === "leadStatus" && data.isWon && data.isLost) {
+    throw new ActionError("A status can mean won or lost, not both.");
+  }
+  if (def.kind === "leadSource" && id && data.isActive === false) {
+    const src = await db.leadSource.findFirst({ where: { id: id as string, organizationId: orgId } });
+    if (src?.isSystem) throw new ActionError("The Website source is used by the public forms and can't be turned off.");
+  }
+
   await db.$transaction(async (tx) => {
     const d = delegate(tx, def.kind);
+    // Only one status can be the starting status.
+    if (def.kind === "leadStatus" && data.isDefault) {
+      await tx.leadStatus.updateMany({
+        where: { organizationId: orgId, ...(id ? { id: { not: id as string } } : {}) },
+        data: { isDefault: false },
+      });
+    }
     const createData = def.kind === "deviceModel" ? data : { ...data, organizationId: orgId };
     if (!id) {
       const created = await d.create({ data: createData });

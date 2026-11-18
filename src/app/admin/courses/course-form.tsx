@@ -1,6 +1,9 @@
 "use client";
 
-import { useWatch } from "react-hook-form";
+import { Controller, useWatch } from "react-hook-form";
+import { ImagePicker } from "@/components/cms/media-library";
+import { MarkdownEditor } from "@/components/cms/markdown-editor";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { SelectField, SwitchField, TextField, TextareaField } from "@/components/forms/fields";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { saveCourseAction } from "@/modules/courses/courses.actions";
@@ -28,7 +31,12 @@ export const EMPTY_COURSE: CourseInput = {
   shortDescription: "",
   eligibility: "",
   showOnWebsite: true,
+  showFeeOnWebsite: true,
   isFeatured: false,
+  description: "",
+  imageId: null,
+  seoTitle: "",
+  seoDescription: "",
   isActive: true,
   sortOrder: "0",
 };
@@ -111,8 +119,40 @@ function CourseFields({
       <div className="flex flex-col gap-3 sm:col-span-2">
         <SwitchField control={form.control} name="isActive" label="Active (open for admissions)" />
         <SwitchField control={form.control} name="showOnWebsite" label="Show on website" />
+        <SwitchField
+          control={form.control}
+          name="showFeeOnWebsite"
+          label="Show the fee on the website"
+          description="When off, the website says “Contact us for fees”."
+        />
         <SwitchField control={form.control} name="isFeatured" label="Featured on the home page" />
       </div>
+      <p className="pt-2 text-sm font-medium sm:col-span-2">Website page</p>
+      <Controller
+        control={form.control}
+        name="imageId"
+        render={({ field }) => (
+          <Field className="sm:col-span-2">
+            <FieldLabel>Image</FieldLabel>
+            <ImagePicker value={field.value} onChange={field.onChange} aspect={16 / 9} />
+          </Field>
+        )}
+      />
+      <Controller
+        control={form.control}
+        name="description"
+        render={({ field }) => (
+          <Field className="sm:col-span-2">
+            <FieldLabel>Full description</FieldLabel>
+            <MarkdownEditor value={field.value ?? ""} onChange={field.onChange} rows={8} />
+            <FieldDescription>
+              Shown on the course page. The syllabus (modules) is listed beside it automatically.
+            </FieldDescription>
+          </Field>
+        )}
+      />
+      <TextField control={form.control} name="seoTitle" label="SEO title" maxLength={70} />
+      <TextField control={form.control} name="seoDescription" label="SEO description" maxLength={160} />
     </div>
   );
 }

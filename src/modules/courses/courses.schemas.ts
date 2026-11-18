@@ -61,7 +61,12 @@ export const courseSchema = z
     shortDescription: optText(300),
     eligibility: optText(300),
     showOnWebsite: z.boolean(),
+    showFeeOnWebsite: z.boolean().default(true),
     isFeatured: z.boolean(),
+    description: optText(20_000),
+    imageId: optId,
+    seoTitle: optText(70),
+    seoDescription: optText(160),
     isActive: z.boolean(),
     sortOrder: z.coerce.number().int().min(0).max(999),
   })

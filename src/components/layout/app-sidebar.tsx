@@ -27,6 +27,14 @@ import {
   TruckIcon,
   UsersIcon,
   WrenchIcon,
+  InboxIcon,
+  PhoneCallIcon,
+  ChartColumnIcon,
+  PanelsTopLeftIcon,
+  MenuIcon,
+  ImagesIcon,
+  LayersIcon,
+  GlobeIcon,
   type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -74,6 +82,14 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   dues: CalendarClockIcon,
   receipts: ReceiptIndianRupeeIcon,
   approvals: BadgeCheckIcon,
+  leads: InboxIcon,
+  followups: PhoneCallIcon,
+  report: ChartColumnIcon,
+  pages: PanelsTopLeftIcon,
+  menu: MenuIcon,
+  media: ImagesIcon,
+  content: LayersIcon,
+  globe: GlobeIcon,
 };
 
 export function AppSidebar({

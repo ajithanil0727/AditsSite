@@ -6,13 +6,19 @@ import { getActiveBranchId, getSelectableBranches, requirePagePermission } from 
 import { batchOptions, courseOptions } from "@/modules/courses/courses.queries";
 import { paymentFormOptions } from "@/modules/inventory/inventory.queries";
 import { can } from "@/modules/rbac/access";
+import { leadForConversion } from "@/modules/leads/leads.queries";
 import { admissionBranches } from "@/modules/students/students.queries";
 import { AdmissionForm } from "./admission-form";
 
 export const metadata: Metadata = { title: "New admission" };
 
-export default async function NewAdmissionPage() {
+export default async function NewAdmissionPage(props: PageProps<"/admin/students/new">) {
   const user = await requirePagePermission("students.create");
+  const leadId = (await props.searchParams).lead;
+  const lead =
+    typeof leadId === "string" && can(user.access, "leads.convert")
+      ? await leadForConversion(user, leadId, "COURSE")
+      : null;
   const [selectable, active] = await Promise.all([getSelectableBranches(user), getActiveBranchId(user)]);
   const branches = await admissionBranches(user, selectable);
   if (branches.length === 0) redirect("/admin/no-access");
@@ -30,13 +36,16 @@ export default async function NewAdmissionPage() {
       />
       <AdmissionForm
         branches={branches.map((b) => ({ value: b.id, label: b.name }))}
-        defaultBranchId={active && ids.includes(active) ? active : ids[0]}
+        defaultBranchId={
+          lead && ids.includes(lead.branchId) ? lead.branchId : active && ids.includes(active) ? active : ids[0]
+        }
         courses={courses}
         batches={batches}
         payment={pay}
         today={istDateOnly(new Date()).toISOString().slice(0, 10)}
         limits={{ percent: user.access.discountLimitPercent, amount: user.access.discountLimitAmount }}
         canDiscount={can(user.access, "fees.discount_request")}
+        lead={lead}
       />
     </>
   );

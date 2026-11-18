@@ -67,7 +67,10 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     description: "Everything in their branches.",
     defaultScope: "ASSIGNED_BRANCHES",
     // Unlock codes: only the assigned engineer and the service manager (see Phase 2 decisions).
-    permissions: expandPermissions(OPERATIONAL).filter((k) => k !== "jobcards.view_unlock_code"),
+    // Managers assign leads; counsellors are the ones in the round-robin.
+    permissions: expandPermissions(OPERATIONAL).filter(
+      (k) => k !== "jobcards.view_unlock_code" && k !== "leads.receive",
+    ),
     discountLimitPercent: 10,
     discountLimitAmount: 5_000,
   },

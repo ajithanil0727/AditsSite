@@ -7,6 +7,7 @@ import { addDays, istDateOnly } from "@/lib/fy";
 import { assertMoneyAccount, assertPaymentMode, recordMoney } from "@/modules/accounts/money.service";
 import { writeAudit } from "@/modules/audit/audit.service";
 import { issueStock, receiveStock } from "@/modules/inventory/stock.service";
+import { convertLeadOnCreate } from "@/modules/leads/leads.service";
 import { nextDocNumber } from "@/modules/numbering/numbering.service";
 import { can, canAccessBranch, scopeOf } from "@/modules/rbac/access";
 import { ActionError, type ActionContext } from "@/modules/rbac/action";
@@ -310,6 +311,15 @@ export async function intake(ctx: ActionContext, input: z.output<typeof intakeSc
       entityId: job.id,
       branchId: job.branchId,
       after: auditable,
+    });
+
+    await convertLeadOnCreate(tx, ctx, {
+      type: "SERVICE",
+      phone: customer.phone,
+      leadId: can(ctx.user.access, "leads.convert") ? input.leadId : null,
+      jobCardId: job.id,
+      customerId: customer.id,
+      label: `Job card ${jobNo} opened`,
     });
 
     if (input.advanceAmount && input.advanceAmount > 0) {

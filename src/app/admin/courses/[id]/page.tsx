@@ -55,7 +55,12 @@ export default async function CoursePage(props: PageProps<"/admin/courses/[id]">
                   shortDescription: course.shortDescription ?? "",
                   eligibility: course.eligibility ?? "",
                   showOnWebsite: course.showOnWebsite,
+                  showFeeOnWebsite: course.showFeeOnWebsite,
                   isFeatured: course.isFeatured,
+                  description: typeof course.description === "string" ? course.description : "",
+                  imageId: course.imageId,
+                  seoTitle: course.seoTitle ?? "",
+                  seoDescription: course.seoDescription ?? "",
                   isActive: course.isActive,
                   sortOrder: String(course.sortOrder),
                 }}

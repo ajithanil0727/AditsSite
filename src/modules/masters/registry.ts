@@ -38,7 +38,7 @@ export type MasterDef = {
   kind: MasterKind;
   label: string;
   singular: string;
-  group: "Service" | "Inventory" | "Accounts" | "Purchase";
+  group: "Enquiries" | "Service" | "Inventory" | "Accounts" | "Purchase";
   description: string;
   permission: PermissionKey;
   fields: MasterField[];
@@ -47,6 +47,8 @@ export type MasterDef = {
 };
 
 export const MASTER_KINDS = [
+  "leadSource",
+  "leadStatus",
   "deviceType",
   "brand",
   "deviceModel",
@@ -91,6 +93,34 @@ const active = { name: "isActive", label: "Active", type: "switch", default: tru
 const sort = { name: "sortOrder", label: "Sort order", type: "number", min: 0, max: 999 } as const;
 
 export const MASTERS: Record<MasterKind, MasterDef> = {
+  leadSource: {
+    kind: "leadSource",
+    label: "Lead sources",
+    singular: "lead source",
+    group: "Enquiries",
+    permission: "masters.crm",
+    description: "Where enquiries come from: website, walk-in, phone, referral, Instagram…",
+    fields: [{ name: "name", label: "Name", type: "text", required: true, max: 60 }, active],
+    columns: ["name", "isActive"],
+  },
+  leadStatus: {
+    kind: "leadStatus",
+    label: "Lead statuses",
+    singular: "lead status",
+    group: "Enquiries",
+    permission: "masters.crm",
+    description: "The enquiry pipeline. Mark which status new leads start in, and which mean won or lost.",
+    fields: [
+      { name: "name", label: "Name", type: "text", required: true, max: 40 },
+      { name: "color", label: "Colour", type: "select", options: TONES },
+      sort,
+      { name: "isDefault", label: "New leads start here", type: "switch" },
+      { name: "isWon", label: "Means won (admitted / job opened)", type: "switch" },
+      { name: "isLost", label: "Means lost (asks for a reason)", type: "switch" },
+      active,
+    ],
+    columns: ["name", "color", "sortOrder", "isDefault", "isWon", "isLost", "isActive"],
+  },
   deviceType: {
     kind: "deviceType",
     label: "Device types",

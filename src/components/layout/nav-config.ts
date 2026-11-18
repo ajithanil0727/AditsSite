@@ -28,7 +28,15 @@ export type NavIcon =
   | "batches"
   | "dues"
   | "receipts"
-  | "approvals";
+  | "approvals"
+  | "leads"
+  | "followups"
+  | "report"
+  | "pages"
+  | "menu"
+  | "media"
+  | "content"
+  | "globe";
 
 export type NavItem = {
   title: string;
@@ -55,6 +63,14 @@ export const NAV: NavGroup[] = [
   {
     label: "Overview",
     items: [{ title: "Dashboard", href: "/admin", icon: "dashboard", permissions: ["dashboard.view"] }],
+  },
+  {
+    label: "Enquiries",
+    items: [
+      { title: "Enquiries", href: "/admin/leads", icon: "leads", permissions: ["leads.view"], exact: true },
+      { title: "Follow-ups", href: "/admin/leads/follow-ups", icon: "followups", permissions: ["leads.view"] },
+      { title: "Conversion report", href: "/admin/leads/report", icon: "report", permissions: ["leads.view"] },
+    ],
   },
   {
     label: "Students",
@@ -106,6 +122,21 @@ export const NAV: NavGroup[] = [
       { title: "Transfers", href: "/admin/inventory/transfers", icon: "transfer", permissions: ["inventory.view"] },
       { title: "Movements", href: "/admin/inventory/movements", icon: "movements", permissions: ["inventory.view"] },
       { title: "Purchases", href: "/admin/purchases", icon: "purchase", permissions: ["purchases.view"] },
+    ],
+  },
+  {
+    label: "Website",
+    items: [
+      { title: "Pages", href: "/admin/website/pages", icon: "pages", permissions: ["website.view"] },
+      {
+        title: "Content",
+        href: "/admin/website/content",
+        icon: "content",
+        permissions: ["website.view", "companies.manage"],
+      },
+      { title: "Media library", href: "/admin/website/media", icon: "media", permissions: ["media.manage"] },
+      { title: "Menus", href: "/admin/website/menu", icon: "menu", permissions: ["website.edit"] },
+      { title: "Site settings", href: "/admin/website/settings", icon: "globe", permissions: ["website.edit"] },
     ],
   },
   {
@@ -162,6 +193,23 @@ export const SEGMENT_LABELS: Record<string, string> = {
   payments: "Receipts",
   approvals: "Approvals",
   new: "New",
+  leads: "Enquiries",
+  "follow-ups": "Follow-ups",
+  report: "Conversion report",
+  website: "Website",
+  pages: "Pages",
+  content: "Content",
+  media: "Media library",
+  menu: "Menus",
+  services: "Services",
+  testimonials: "Testimonials",
+  stories: "Success stories",
+  gallery: "Gallery",
+  faqs: "FAQs",
+  banners: "Banners",
+  companies: "Hiring companies",
+  leadSource: "Lead sources",
+  leadStatus: "Lead statuses",
   "no-access": "No access",
   deviceType: "Device types",
   brand: "Brands",
@@ -180,4 +228,10 @@ export const SEGMENT_LABELS: Record<string, string> = {
 };
 
 /** Path segments with no page of their own (breadcrumbs render them as text). */
-export const NON_LINK_SEGMENTS = new Set(["/admin/settings", "/admin/service", "/admin/inventory", "/admin/fees"]);
+export const NON_LINK_SEGMENTS = new Set([
+  "/admin/settings",
+  "/admin/service",
+  "/admin/inventory",
+  "/admin/fees",
+  "/admin/website",
+]);

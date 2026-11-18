@@ -112,6 +112,8 @@ enum LeadActivityKind {
   WHATSAPP
   STATUS_CHANGE
   ASSIGNMENT
+  ENQUIRY // a repeat enquiry from the same phone, added to the open lead
+  CONVERSION
 }
 
 enum DurationUnit {
@@ -1009,6 +1011,13 @@ model Lead {
   nextFollowUpAt DateTime?
   lostReason     String?
   convertedAt    DateTime?
+  enquiryCount   Int         @default(1)
+  lastEnquiryAt  DateTime    @default(now())
+  /// What the lead converted into (a student may have several leads over time, so these live here).
+  enrollmentId   String?     @unique
+  enrollment     Enrollment? @relation(fields: [enrollmentId], references: [id])
+  jobCardId      String?     @unique
+  jobCard        JobCard?    @relation(fields: [jobCardId], references: [id])
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   deletedAt      DateTime?
@@ -1020,6 +1029,7 @@ model Lead {
   @@index([branchId, statusId])
   @@index([assignedToId, nextFollowUpAt])
   @@index([phone])
+  @@index([organizationId, createdAt])
 }
 
 model LeadActivity {
@@ -1062,6 +1072,7 @@ model Course {
   certificateTemplateId String?
   certificateTemplate   DocumentTemplate? @relation(fields: [certificateTemplateId], references: [id])
   showOnWebsite         Boolean           @default(true)
+  showFeeOnWebsite      Boolean           @default(true)
   isFeatured            Boolean           @default(false)
   isActive              Boolean           @default(true)
   sortOrder             Int               @default(0)
@@ -1219,6 +1230,7 @@ model Enrollment {
   certificate      Certificate?
   invoices         Invoice[]
   applications     PlacementApplication[]
+  lead             Lead?
 
   @@index([branchId, status])
   @@index([studentId])
@@ -1660,6 +1672,7 @@ model JobCard {
   labour       JobLabour[]
   invoices     Invoice[]
   payments     ServicePayment[]
+  lead         Lead?
 
   @@unique([organizationId, jobNo])
   @@index([branchId, statusId])
@@ -2748,19 +2761,22 @@ model Page {
   @@unique([organizationId, slug])
 }
 
-/// Section content is JSON validated by a Zod schema per section `type`
-/// (hero, stats, whatWeDo, featuredCourses, testimonials, cta, richText, ...).
-/// Edits go to draftContent; Publish copies it to publishedContent.
+/// Section content is JSON validated by a Zod schema per section `type` (src/modules/website/sections.ts).
+/// Editing changes the draft (draftContent, sortOrder, isVisible, deletedAt). Publish copies the draft to the
+/// published columns; the public site reads only published values. Never-published sections have publishedContent null.
 model PageSection {
-  id               String   @id @default(cuid())
-  pageId           String
-  page             Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  type             String
-  sortOrder        Int      @default(0)
-  isVisible        Boolean  @default(true)
-  draftContent     Json
-  publishedContent Json?
-  updatedAt        DateTime @updatedAt
+  id                 String    @id @default(cuid())
+  pageId             String
+  page               Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  type               String
+  sortOrder          Int       @default(0)
+  isVisible          Boolean   @default(true)
+  draftContent       Json
+  publishedContent   Json?
+  publishedSortOrder Int?
+  publishedVisible   Boolean   @default(false)
+  deletedAt          DateTime? // removed in the draft; deleted for good on publish
+  updatedAt          DateTime  @updatedAt
 
   @@index([pageId, sortOrder])
 }

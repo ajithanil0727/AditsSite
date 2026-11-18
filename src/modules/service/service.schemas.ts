@@ -29,6 +29,11 @@ export const PRIORITY_LABELS: Record<(typeof PRIORITIES)[number], string> = {
 export const intakeSchema = z
   .object({
     branchId: z.string().min(1, "Select the branch"),
+    leadId: z
+      .string()
+      .optional()
+      .nullable()
+      .transform((v) => v || null), // converting this enquiry
     // Customer: existing id, or new details
     customerId: optId,
     customerName: z.string().trim().max(100).optional().default(""),

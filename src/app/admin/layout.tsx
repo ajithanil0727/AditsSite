@@ -3,6 +3,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { BranchSwitcher } from "@/components/layout/branch-switcher";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { navFor } from "@/components/layout/nav-config";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { UserMenu } from "@/components/layout/user-menu";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Separator } from "@/components/ui/separator";
@@ -45,6 +46,7 @@ async function AdminShell({ children }: { children: React.ReactNode }) {
               activeBranchId={activeBranchId}
               allLabel={user.access.canSeeAllBranches ? "All branches" : "All my branches"}
             />
+            <NotificationBell />
             <ThemeToggle />
             <UserMenu name={user.name} email={user.email} />
           </div>
