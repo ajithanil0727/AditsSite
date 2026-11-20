@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { paging, type ListParams } from "@/lib/list-params";
 import type { CurrentUser } from "@/modules/auth/current";
 import { branchConstraint } from "@/modules/rbac/access";
+import { canManageProtected } from "@/modules/rbac/escalation";
 
 export const USER_SORTS = ["name", "email", "lastLoginAt"] as const;
 
@@ -40,7 +41,7 @@ export async function listUsers(user: CurrentUser, p: ListParams, activeBranchId
         isActive: true,
         lastLoginAt: true,
         deletedAt: true,
-        roles: { select: { roleId: true, scope: true, role: { select: { name: true } } } },
+        roles: { select: { roleId: true, scope: true, role: { select: { name: true, isProtected: true } } } },
         branches: { select: { branchId: true, branch: { select: { code: true } } } },
       },
       orderBy: p.sort ? { [p.sort]: p.dir } : { name: "asc" },
@@ -59,6 +60,8 @@ export async function listUsers(user: CurrentUser, p: ListParams, activeBranchId
       lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
       deleted: !!u.deletedAt,
       isSelf: u.id === user.id,
+      /** Owners and super admins: only the super admin manages them (people may edit their own details). */
+      locked: u.id !== user.id && u.roles.some((r) => r.role.isProtected) && !canManageProtected(user.access),
       roleNames: u.roles.map((r) => r.role.name),
       branchCodes: u.branches.map((b) => b.branch.code),
       form: {
@@ -82,7 +85,12 @@ export async function userFormOptions(user: CurrentUser) {
   const [roles, branches] = await Promise.all([
     db.role.findMany({
       where: { organizationId: user.organizationId, deletedAt: null },
-      select: { id: true, name: true, permissions: { select: { permission: { select: { key: true } } } } },
+      select: {
+        id: true,
+        name: true,
+        isProtected: true,
+        permissions: { select: { permission: { select: { key: true } } } },
+      },
       orderBy: { name: "asc" },
     }),
     db.branch.findMany({
@@ -97,7 +105,10 @@ export async function userFormOptions(user: CurrentUser) {
       id: r.id,
       name: r.name,
       // Roles with permissions the current user lacks can't be assigned by them.
-      grantable: r.permissions.every((p) => own.has(p.permission.key as never)),
+      // Owner / Super Admin: only the super admin.
+      grantable:
+        r.permissions.every((p) => own.has(p.permission.key as never)) &&
+        (!r.isProtected || canManageProtected(user.access)),
     })),
     branches: branches
       .filter((b) => user.access.canSeeAllBranches || user.access.assignedBranchIds.includes(b.id))

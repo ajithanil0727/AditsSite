@@ -58,6 +58,11 @@ export default async function RolesPage() {
                       Default
                     </Badge>
                   )}
+                  {r.isProtected && (
+                    <Badge variant="secondary" className="ml-2">
+                      Super admin only
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell className="hidden max-w-sm truncate text-muted-foreground md:table-cell">
                   {r.description}

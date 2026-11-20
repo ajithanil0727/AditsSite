@@ -63,6 +63,13 @@ const USERS: {
   branches: string[];
 }[] = [
   {
+    email: "superadmin@demo.test",
+    name: "Super Admin",
+    phone: "9895000000",
+    roles: [{ role: "Super Admin" }],
+    branches: ["PKD", "MKM"],
+  },
+  {
     email: "arun@demo.test",
     name: "Arun Kumar",
     phone: "9895000001",
@@ -294,9 +301,13 @@ async function main() {
           isSystem: true,
           discountLimitPercent: r.discountLimitPercent,
           discountLimitAmount: r.discountLimitAmount,
+          isProtected: r.isProtected ?? false,
           permissions: { create: r.permissions.map((key) => ({ permissionId: permIds.get(key)! })) },
         },
       });
+    } else if (role.isProtected !== (r.isProtected ?? false)) {
+      // Which default roles are protected is structural, not an admin preference.
+      role = await db.role.update({ where: { id: role.id }, data: { isProtected: r.isProtected ?? false } });
     }
     roleIds[r.name] = { id: role.id, scope: r.defaultScope };
   }

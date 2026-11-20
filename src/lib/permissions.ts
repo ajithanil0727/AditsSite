@@ -17,6 +17,7 @@ export const PERMISSION_MODULES = {
       update: "Edit",
       delete: "Delete / restore",
       reset_password: "Reset password",
+      manage_protected: "Manage owners and super admins",
     },
   },
   roles: { label: "Roles & permissions", actions: { view: "View", manage: "Create / edit / delete" } },

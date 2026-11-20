@@ -92,6 +92,13 @@ export function UsersTable({
       cell: ({ row }) => {
         const u = row.original;
         if (!perms.update && !perms.delete && !perms.resetPassword) return null;
+        // Owners' and super admins' accounts are managed only by the super admin.
+        if (u.locked)
+          return (
+            <span className="text-xs text-muted-foreground" title="Only a super admin can change this account">
+              Protected
+            </span>
+          );
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

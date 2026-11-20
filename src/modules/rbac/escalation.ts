@@ -21,6 +21,28 @@ export function canGrantRole(actor: Access, rolePermissionKeys: readonly string[
   return null;
 }
 
+/**
+ * Protected roles (Super Admin, Owner) and the accounts that hold them can only be managed by someone with
+ * `users.manage_protected` (the Super Admin). Owners run the business but can't add owners or touch the
+ * super admin's account.
+ */
+export function canManageProtected(actor: Access): boolean {
+  return actor.permissions.has("users.manage_protected");
+}
+
+/** Error message if the actor would add or remove a protected role, else null. */
+export function protectedRoleChangeProblem(
+  actor: Access,
+  change: { before: { roleId: string; isProtected: boolean }[]; after: { roleId: string; isProtected: boolean }[] },
+): string | null {
+  if (canManageProtected(actor)) return null;
+  const key = (r: { roleId: string }) => r.roleId;
+  const beforeIds = new Set(change.before.filter((r) => r.isProtected).map(key));
+  const afterIds = new Set(change.after.filter((r) => r.isProtected).map(key));
+  const changed = [...beforeIds].some((id) => !afterIds.has(id)) || [...afterIds].some((id) => !beforeIds.has(id));
+  return changed ? "Only a super admin can add or remove owners and super admins." : null;
+}
+
 /** Branches in `branchIds` the actor can't hand out. */
 export function branchesBeyond(actor: Access, branchIds: readonly string[]): string[] {
   if (actor.canSeeAllBranches) return [];

@@ -46,10 +46,11 @@ describe("permissions catalogue", () => {
     expect(expandPermissions(["roles.*"]).sort()).toEqual(["roles.manage", "roles.view"]);
     expect(() => expandPermissions(["nope.view"])).toThrow();
   });
-  it("default roles only use real permissions; the owner has all", () => {
+  it("default roles only use real permissions; the super admin has all, the owner all but managing owners", () => {
     for (const role of DEFAULT_ROLES) for (const p of role.permissions) expect(ALL_PERMISSION_KEYS).toContain(p);
+    expect(DEFAULT_ROLES.find((r) => r.name === "Super Admin")!.permissions.length).toBe(ALL_PERMISSION_KEYS.length);
     expect(DEFAULT_ROLES.find((r) => r.name === "Owner / Partner")!.permissions.length).toBe(
-      ALL_PERMISSION_KEYS.length,
+      ALL_PERMISSION_KEYS.length - 1,
     );
     expect(DEFAULT_ROLES.find((r) => r.name === "Admin")!.permissions).not.toContain("profit.lock");
   });

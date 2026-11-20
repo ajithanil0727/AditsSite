@@ -691,6 +691,9 @@ model Role {
   name                 String
   description          String?
   isSystem             Boolean      @default(false) // seeded roles: editable, not deletable
+  /// Protected roles (Super Admin, Owner): only users with `users.manage_protected` may give or remove them,
+  /// edit them, or manage an account that holds one.
+  isProtected          Boolean      @default(false)
   /// Max discount this role can give without approval. 0 = every discount needs approval.
   discountLimitPercent Decimal      @default(0) @db.Decimal(5, 2)
   discountLimitAmount  Decimal      @default(0) @db.Decimal(12, 2)

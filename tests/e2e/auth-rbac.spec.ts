@@ -42,3 +42,20 @@ test("a service engineer only gets what their role allows", async ({ page }) => 
   await expect(page).toHaveURL(/\/admin\/no-access/);
   await expect(page.getByRole("heading", { name: /don't have access/ })).toBeVisible();
 });
+
+test("owners can't touch the super admin or other owners; the super admin can", async ({ page }) => {
+  await signIn(page, "arun@demo.test");
+  await expect(page.getByRole("heading", { name: /Welcome, Arun/ })).toBeVisible();
+  await page.goto("/admin/settings/users?q=superadmin");
+  await expect(page.getByRole("row", { name: /Super Admin/ }).getByText("Protected")).toBeVisible();
+  await page.goto("/admin/settings/users?q=bindu");
+  await expect(page.getByRole("row", { name: /Bindu Menon/ }).getByText("Protected")).toBeVisible();
+
+  await page.context().clearCookies();
+  await signIn(page, "superadmin@demo.test");
+  await expect(page.getByRole("heading", { name: /Welcome, Super/ })).toBeVisible();
+  await page.goto("/admin/settings/users?q=bindu");
+  const row = page.getByRole("row", { name: /Bindu Menon/ });
+  await expect(row.getByText("Protected")).toHaveCount(0);
+  await expect(row.getByRole("button", { name: /Actions for Bindu Menon/ })).toBeVisible();
+});

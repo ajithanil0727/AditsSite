@@ -4,7 +4,12 @@ import { writeAudit } from "@/modules/audit/audit.service";
 import { hashPassword } from "@/modules/auth/password";
 import { canAccessBranch } from "@/modules/rbac/access";
 import { ActionError, type ActionContext } from "@/modules/rbac/action";
-import { branchesBeyond, canGrantRole } from "@/modules/rbac/escalation";
+import {
+  branchesBeyond,
+  canGrantRole,
+  canManageProtected,
+  protectedRoleChangeProblem,
+} from "@/modules/rbac/escalation";
 import type { UserData } from "./users.schemas";
 
 /** Snapshot used for audit before/after (never includes the password). */
@@ -42,9 +47,17 @@ async function assertCanManage(
 ) {
   const target = await tx.user.findFirst({
     where: { id: targetId, organizationId: ctx.user.organizationId },
-    select: { id: true, branches: { select: { branchId: true } } },
+    select: {
+      id: true,
+      branches: { select: { branchId: true } },
+      roles: { where: { role: { isProtected: true } }, select: { roleId: true } },
+    },
   });
   if (!target) throw new ActionError("User not found.");
+  // Owners' and super admins' accounts: only the super admin (people may still edit their own details).
+  if (target.roles.length && target.id !== ctx.user.id && !canManageProtected(ctx.user.access)) {
+    throw new ActionError("Only a super admin can change an owner's or super admin's account.");
+  }
   const outside = target.branches.filter((b) => !canAccessBranch(ctx.user.access, permission, b.branchId));
   if (outside.length || (target.branches.length === 0 && !ctx.user.access.canSeeAllBranches)) {
     throw new ActionError("This user works in branches you don't manage.");
@@ -55,11 +68,29 @@ async function assertCanManage(
 async function assertGrantable(tx: Tx, ctx: ActionContext, input: UserData) {
   const roles = await tx.role.findMany({
     where: { id: { in: input.roles.map((r) => r.roleId) }, organizationId: ctx.user.organizationId, deletedAt: null },
-    select: { id: true, name: true, permissions: { select: { permission: { select: { key: true } } } } },
+    select: {
+      id: true,
+      name: true,
+      isProtected: true,
+      permissions: { select: { permission: { select: { key: true } } } },
+    },
   });
   if (roles.length !== input.roles.length) throw new ActionError("One of the selected roles no longer exists.");
+  const current = input.id
+    ? await tx.userRole.findMany({
+        where: { userId: input.id },
+        select: { roleId: true, role: { select: { isProtected: true } } },
+      })
+    : [];
+  const protectedProblem = protectedRoleChangeProblem(ctx.user.access, {
+    before: current.map((r) => ({ roleId: r.roleId, isProtected: r.role.isProtected })),
+    after: roles.map((r) => ({ roleId: r.id, isProtected: r.isProtected })),
+  });
+  if (protectedProblem) throw new ActionError(protectedProblem);
   for (const assignment of input.roles) {
     const role = roles.find((r) => r.id === assignment.roleId)!;
+    // Keeping a protected role you already hold (editing your own details) isn't granting it.
+    if (role.isProtected && current.some((c) => c.roleId === role.id)) continue;
     const problem = canGrantRole(
       ctx.user.access,
       role.permissions.map((p) => p.permission.key),

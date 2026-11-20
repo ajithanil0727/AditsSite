@@ -8,6 +8,8 @@ export type DefaultRole = {
   permissions: PermissionKey[];
   discountLimitPercent: number;
   discountLimitAmount: number;
+  /** Only a super admin may give, remove or edit it (see rbac/escalation.ts). */
+  isProtected?: boolean;
 };
 
 const OPERATIONAL = [
@@ -45,19 +47,33 @@ const OPERATIONAL = [
 /** Seeded roles. All are editable in the permission matrix; none are hard-coded in checks. */
 export const DEFAULT_ROLES: DefaultRole[] = [
   {
-    name: "Owner / Partner",
-    description: "Co-owners of the company. Full access by default.",
+    name: "Super Admin",
+    description: "Everything, including adding owners. Looks after the website and the system.",
     defaultScope: "ALL_BRANCHES",
     permissions: [...ALL_PERMISSION_KEYS],
     discountLimitPercent: 100,
     discountLimitAmount: 10_000_000,
+    isProtected: true,
+  },
+  {
+    name: "Owner / Partner",
+    description: "Co-owners: run the whole business. Only the super admin adds owners.",
+    defaultScope: "ALL_BRANCHES",
+    permissions: ALL_PERMISSION_KEYS.filter((k) => k !== "users.manage_protected"),
+    discountLimitPercent: 100,
+    discountLimitAmount: 10_000_000,
+    isProtected: true,
   },
   {
     name: "Admin",
-    description: "Day-to-day system administration.",
+    description: "Staff-level administration under the owners: users, settings, website, master data.",
     defaultScope: "ALL_BRANCHES",
     permissions: ALL_PERMISSION_KEYS.filter(
-      (k) => k !== "profit.lock" && k !== "partners.manage" && k !== "jobcards.view_unlock_code",
+      (k) =>
+        k !== "profit.lock" &&
+        k !== "partners.manage" &&
+        k !== "jobcards.view_unlock_code" &&
+        k !== "users.manage_protected",
     ),
     discountLimitPercent: 100,
     discountLimitAmount: 10_000_000,

@@ -3,7 +3,7 @@ import type { z } from "zod";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/modules/audit/audit.service";
 import { ActionError, type ActionContext } from "@/modules/rbac/action";
-import { permissionsBeyond } from "@/modules/rbac/escalation";
+import { canManageProtected, permissionsBeyond } from "@/modules/rbac/escalation";
 import type { createRoleSchema, updateRoleSchema } from "./roles.schemas";
 
 export async function listRoles(organizationId: string) {
@@ -14,15 +14,17 @@ export async function listRoles(organizationId: string) {
       name: true,
       description: true,
       isSystem: true,
+      isProtected: true,
       _count: { select: { permissions: true, users: { where: { user: { deletedAt: null } } } } },
     },
-    orderBy: [{ isSystem: "desc" }, { name: "asc" }],
+    orderBy: [{ isProtected: "desc" }, { isSystem: "desc" }, { name: "asc" }],
   });
   return roles.map((r) => ({
     id: r.id,
     name: r.name,
     description: r.description,
     isSystem: r.isSystem,
+    isProtected: r.isProtected,
     permissionCount: r._count.permissions,
     userCount: r._count.users,
   }));
@@ -39,6 +41,7 @@ export async function getRole(organizationId: string, id: string) {
     name: role.name,
     description: role.description ?? "",
     isSystem: role.isSystem,
+    isProtected: role.isProtected,
     discountLimitPercent: role.discountLimitPercent.toNumber(),
     discountLimitAmount: role.discountLimitAmount.toNumber(),
     permissions: role.permissions.map((p) => p.permission.key),
@@ -80,6 +83,8 @@ export async function updateRole(ctx: ActionContext, input: z.output<typeof upda
   await db.$transaction(async (tx) => {
     const before = await getRole(orgId, input.id);
     if (!before) throw new ActionError("Role not found.");
+    if (before.isProtected && !canManageProtected(ctx.user.access))
+      throw new ActionError("Only a super admin can change the Owner and Super Admin roles.");
 
     // You may only add or remove permissions you hold yourself.
     const added = input.permissions.filter((k) => !before.permissions.includes(k));
