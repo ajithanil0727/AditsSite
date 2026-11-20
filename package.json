@@ -23,6 +23,7 @@
     "check": "npm run typecheck && npm run lint && npm run test"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.899.0",
     "@gsap/react": "^2.1.2",
     "@hookform/resolvers": "^7.0.7",
     "@node-rs/argon2": "^2.2.2",
@@ -39,6 +40,7 @@
     "lucide-react": "^1.74.0",
     "next": "16.4.6",
     "next-themes": "^0.4.6",
+    "nodemailer": "^7.0.10",
     "pg": "^8.23.1",
     "qrcode": "^1.5.4",
     "radix-ui": "^1.8.1",
@@ -57,6 +59,7 @@
     "@playwright/test": "^1.65.1",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^24.19.2",
+    "@types/nodemailer": "^7.0.3",
     "@types/pg": "^8.23.1",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19",

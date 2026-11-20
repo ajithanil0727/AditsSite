@@ -216,7 +216,10 @@ export async function getCertificateForPrint(user: CurrentUser, id: string) {
     where: { id, organizationId: user.organizationId },
     include: certificateInclude,
   });
-  if (!c || !canAccessBranch(user.access, "certificates.view", c.branchId)) return null;
+  if (!c) return null;
+  const own = await db.student.count({ where: { userId: user.id, enrollments: { some: { id: c.enrollmentId } } } });
+  if (!own && !canAccessBranch(user.access, "certificates.view", c.branchId)) return null;
+  if (own && c.status !== "ISSUED") return null; // students only see valid certificates
   return c;
 }
 

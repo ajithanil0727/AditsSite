@@ -65,6 +65,10 @@ Open http://localhost:3000/login. Every demo account uses the password from `SEE
 | engineer.koc@demo.test / engineer.clt@demo.test   | Service Engineer (own records) | KOC / CLT |
 | store.koc@demo.test                               | Store Keeper                   | KOC       |
 
+## Deployment
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) (server, HTTPS, email, storage, production seed, updates, backups).
+
 ## Commands
 
 | Command                                           | What it does                                                                  |

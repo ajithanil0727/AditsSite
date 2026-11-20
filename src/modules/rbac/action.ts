@@ -1,10 +1,12 @@
 import "server-only";
 import { unstable_rethrow } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import type { PermissionKey } from "@/lib/permissions";
 import type { AuditActor } from "@/modules/audit/audit.service";
 import { getActiveBranchId, getCurrentUser, getRequestMeta, type CurrentUser } from "@/modules/auth/current";
+import { flushOutboxQuietly } from "@/modules/messaging/outbox";
 import { can } from "./access";
 
 export type ActionResult<T = void> =
@@ -55,6 +57,8 @@ export function defineAction<S extends z.ZodType, R>(
         return denied;
       }
 
+      // Emails queued by this action (staff alerts, invites) go out once the response is sent.
+      after(flushOutboxQuietly);
       const meta = await getRequestMeta();
       const ctx: ActionContext = {
         user,

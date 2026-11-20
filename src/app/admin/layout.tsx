@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { BranchSwitcher } from "@/components/layout/branch-switcher";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
+import { GlobalSearch } from "@/components/layout/global-search";
 import { navFor } from "@/components/layout/nav-config";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { UserMenu } from "@/components/layout/user-menu";
@@ -9,6 +10,8 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
 import { getActiveBranchId, getSelectableBranches, requireUser } from "@/modules/auth/current";
 import { getCompanyProfile } from "@/modules/settings/settings.service";
 
@@ -26,6 +29,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
 async function AdminShell({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
+  // Student portal accounts have no staff permissions: send them to their portal.
+  if (user.access.permissions.size === 0 && (await db.student.findFirst({ where: { userId: user.id }, select: { id: true } })))
+    redirect("/portal");
   const [branches, activeBranchId, company] = await Promise.all([
     getSelectableBranches(user),
     getActiveBranchId(user),
@@ -41,6 +47,7 @@ async function AdminShell({ children }: { children: React.ReactNode }) {
           <Separator orientation="vertical" className="mr-1 data-[orientation=vertical]:h-5" />
           <Breadcrumbs />
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
+            <GlobalSearch />
             <BranchSwitcher
               branches={branches}
               activeBranchId={activeBranchId}

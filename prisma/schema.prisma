@@ -558,6 +558,7 @@ model User {
   image          String?
   phone          String?
   isActive       Boolean      @default(true)
+  emailAlerts    Boolean      @default(false) // also send my in-app alerts by email
   lastLoginAt    DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -574,6 +575,7 @@ model User {
 
   auditLogs     AuditLog[]
   notifications Notification[]
+  authTokens    AuthToken[]
   uploads       FileAsset[]
   imports       ImportJob[]
 
@@ -824,6 +826,20 @@ model Notification {
   @@index([userId, readAt])
 }
 
+/// One-time links: set a password (portal invite, forgotten password). Only the SHA-256 of the token is stored.
+model AuthToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String // "SET_PASSWORD"
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
 /// Email/SMS/WhatsApp templates with {{placeholders}}.
 model MessageTemplate {
   id             String   @id @default(cuid())
@@ -851,6 +867,7 @@ model MessageLog {
   entityType     String?
   entityId       String?
   sentAt         DateTime?
+  attempts       Int           @default(0)
   createdAt      DateTime      @default(now())
 
   @@index([status, createdAt])

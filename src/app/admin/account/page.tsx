@@ -10,6 +10,7 @@ import { SCOPE_LABELS } from "@/modules/users/users.schemas";
 import { formatINR } from "@/lib/format";
 import Link from "next/link";
 import { ChangePasswordForm } from "./change-password-form";
+import { EmailAlertsSwitch } from "./email-alerts-switch";
 
 export const metadata: Metadata = { title: "My account" };
 
@@ -23,6 +24,7 @@ export default async function AccountPage() {
       email: true,
       phone: true,
       lastLoginAt: true,
+      emailAlerts: true,
       roles: { select: { scope: true, role: { select: { name: true } } } },
       branches: { select: { branch: { select: { name: true } } }, orderBy: { branch: { sortOrder: "asc" } } },
     },
@@ -56,6 +58,15 @@ export default async function AccountPage() {
                 </div>
               ))}
             </dl>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Alerts</CardTitle>
+            <CardDescription>Your alerts always show in the bell. You can also get them by email at {me.email}.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EmailAlertsSwitch on={me.emailAlerts} />
           </CardContent>
         </Card>
         <Card>

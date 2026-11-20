@@ -4,6 +4,7 @@
  * DEMO data. Idempotent: assessment types are ensured; the rest runs once (when no drive exists).
  */
 import type { PrismaClient } from "../../src/generated/prisma/client";
+import { DEMO } from "./mode";
 
 type Ctx = { orgId: string; userIds: Record<string, string> };
 const DAY = 86_400_000;
@@ -14,7 +15,7 @@ export async function seedPhase7(db: PrismaClient, ctx: Ctx) {
     const found = await db.assessmentType.findFirst({ where: { organizationId: orgId, name } });
     if (!found) await db.assessmentType.create({ data: { organizationId: orgId, name } });
   }
-  if ((await db.placementDrive.count({ where: { organizationId: orgId } })) > 0) return;
+  if (!DEMO || (await db.placementDrive.count({ where: { organizationId: orgId } })) > 0) return;
 
   const theory = await db.assessmentType.findFirstOrThrow({ where: { organizationId: orgId, name: "Theory" } });
   const practical = await db.assessmentType.findFirstOrThrow({ where: { organizationId: orgId, name: "Practical" } });

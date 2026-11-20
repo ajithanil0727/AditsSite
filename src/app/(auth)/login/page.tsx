@@ -21,7 +21,7 @@ export default function LoginPage(props: PageProps<"/login">) {
           <Suspense fallback={<Skeleton className="mx-auto h-6 w-40" />}>
             <CompanyName />
           </Suspense>
-          <CardDescription>Sign in to the staff panel</CardDescription>
+          <CardDescription>Staff and student sign in</CardDescription>
         </CardHeader>
         <CardContent>
           <Suspense fallback={<Skeleton className="h-48 w-full" />}>
@@ -41,7 +41,10 @@ async function CompanyName() {
 
 async function LoginGate({ searchParams }: { searchParams: PageProps<"/login">["searchParams"] }) {
   const params = await searchParams;
-  const next = typeof params.next === "string" && params.next.startsWith("/admin") ? params.next : "/admin";
+  const next =
+    typeof params.next === "string" && (params.next.startsWith("/admin") || params.next.startsWith("/portal"))
+      ? params.next
+      : "/admin";
   if (await getCurrentUser()) redirect(next);
   return <LoginForm next={next} />;
 }

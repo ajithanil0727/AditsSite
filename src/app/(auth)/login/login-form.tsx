@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -58,6 +59,9 @@ export function LoginForm({ next }: { next: string }) {
             {error}
           </p>
         )}
+        <Link href="/forgot-password" className="text-right text-sm text-muted-foreground underline hover:text-foreground">
+          Forgot password?
+        </Link>
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting && <Loader2Icon className="animate-spin" />}
           Sign in

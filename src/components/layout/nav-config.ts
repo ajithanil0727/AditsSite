@@ -3,6 +3,10 @@ import { canAny, type Access } from "@/modules/rbac/access";
 
 /** Icon names are mapped to components in the (client) sidebar. */
 export type NavIcon =
+  | "mail"
+  | "search"
+  | "reports"
+  | "imports"
   | "certificates"
   | "drives"
   | "companies"
@@ -80,7 +84,10 @@ const MASTER_PERMISSIONS: PermissionKey[] = [
 export const NAV: NavGroup[] = [
   {
     label: "Overview",
-    items: [{ title: "Dashboard", href: "/admin", icon: "dashboard", permissions: ["dashboard.view"] }],
+    items: [
+      { title: "Dashboard", href: "/admin", icon: "dashboard", permissions: ["dashboard.view"], exact: true },
+      { title: "Reports", href: "/admin/reports", icon: "reports", permissions: ["reports.view"] },
+    ],
   },
   {
     label: "Enquiries",
@@ -215,6 +222,8 @@ export const NAV: NavGroup[] = [
       { title: "GST registrations", href: "/admin/settings/gst", icon: "receipt", permissions: ["settings.view"] },
       { title: "Branches", href: "/admin/settings/branches", icon: "branch", permissions: ["branches.view"] },
       { title: "Number series", href: "/admin/settings/number-series", icon: "hash", permissions: ["settings.view"] },
+      { title: "Communications", href: "/admin/settings/communications", icon: "mail", permissions: ["settings.view"] },
+      { title: "Imports", href: "/admin/imports", icon: "imports", permissions: ["students.import", "employees.import", "parts.import"] },
       { title: "Master data", href: "/admin/settings/masters", icon: "database", permissions: MASTER_PERMISSIONS },
       { title: "Users", href: "/admin/settings/users", icon: "users", permissions: ["users.view"] },
       { title: "Roles & permissions", href: "/admin/settings/roles", icon: "shield", permissions: ["roles.view"] },
@@ -322,6 +331,10 @@ export const SEGMENT_LABELS: Record<string, string> = {
   placements: "Placements",
   drives: "Drives",
   stats: "Placement stats",
+  communications: "Communications",
+  search: "Search",
+  reports: "Reports",
+  imports: "Imports",
 };
 
 /** Path segments with no page of their own (breadcrumbs render them as text). */

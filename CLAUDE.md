@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Management platform for our chip-level repair training institutes and service centres (India, multi-branch, owned by several co-owners).
-Brief: `PROJECT_BRIEF.md` · Design: `docs/PHASE_0_DESIGN.md` · Schema: `prisma/schema.prisma` · Setup: `README.md`
+Brief: `PROJECT_BRIEF.md` · Design: `docs/PHASE_0_DESIGN.md` · Schema: `prisma/schema.prisma` · Setup: `README.md` · Deploy: `docs/DEPLOYMENT.md` · Backups: `docs/BACKUP.md`
 
 ## Status
 
@@ -13,7 +13,8 @@ Brief: `PROJECT_BRIEF.md` · Design: `docs/PHASE_0_DESIGN.md` · Schema: `prisma
 - Phase 5 (accounts): done 2026-11-20. Expenses (approval above a limit, bills, pay later), other income, day book with balances + transfers between accounts, branch and combined P&L, partners (optional shares per branch from a date, capital, drawings), profit distribution runs (draft → lock), credit notes for delivered repairs (with refund), Excel export (P&L, day book, expenses). Also: Super Admin role, My account (change password), real ADITS branches/courses in the seed.
 - Phase 6 (HR + payroll): done 2026-11-20. Employees (profile, documents, sensitive PAN/bank fields), HR masters (departments, designations, shifts, leave types, salary components), holidays, daily staff attendance, leave (apply → approve, yearly balances), salary structures, advances with monthly recovery, manual incentives with approval, monthly payroll per branch (draft → finalise → pay), payslips (print + My account), salaries in the P&L.
 - Phase 7 (placements, assessments, certificates): done 2026-11-20. Assessment types (master), batch assessments + marks sheet, certificate rules (setting), certificates (ready-to-issue list, issue, cancel, re-issue, A4 print with QR), public verification (`/verify`, `/verify/[code]`), student profile results + placement opt-out, hiring companies with contacts, placement drives (eligible students, rounds, offers, joining), placement stats (branch / course / batch), optional live figures on the public Placements page.
-- Next: Phase 8 (dashboards, reports, notifications, Razorpay, portals, deployment guide) per the brief, unless the owners reprioritise.
+- Phase 8 (dashboards, reports, notifications, portals, deployment): done 2026-11-20. Role-based dashboard, reports hub (8 reports with date/branch filters, Excel + print/PDF), global search, staff alert emails (SMTP outbox, cron retry, Communications page), student portal (email invite / set-password links, forgot password, fees, receipts, attendance, results, certificate, job openings), repair tracker shows the quote (view only) + signed invoice link, Excel imports (students, employees, parts with opening stock), S3/R2 storage driver, production seed mode, `docs/DEPLOYMENT.md`. Razorpay deferred by the owners.
+- Next: no phase left in the brief. Open items: Razorpay (when wanted), fee tax invoices (CA), real partners/staff, certificate wording.
 
 ## Stack
 
@@ -138,6 +139,19 @@ Read `node_modules/next/dist/docs/` before using a Next API you haven't used her
 - **Public figures** (placed, %, hiring companies) on `/placements` only when **Site settings → Placement figures** is on (default off, so demo numbers never go public).
 - `revalidateSite()` is a no-op outside server actions (tests, seed).
 - Demo data (`prisma/seed/phase7.ts`): assessment types, two assessments with marks in PKD-SPE-01, two "Demo …" companies (not on the website), one drive with an offer.
+
+### Phase 8 decisions (dashboards, reports, notifications, portals, deployment)
+
+- **No Razorpay for now** (owners, 2026-11-20). Students pay at the front office; the portal says so.
+- **Emails**: only **staff alerts** are automatic, and only for people who turn on **My account → Email me my alerts** (`User.emailAlerts`). `notify()` also queues an EMAIL `MessageLog` row in the same transaction (outbox). Sending: `after(flushOutboxQuietly)` in `defineAction` + `/api/cron/messages` (Bearer `CRON_SECRET`, ≥16 chars, refuses "change-me…") every 5 min; 3 attempts; rows claimed with `FOR UPDATE SKIP LOCKED`. Without `SMTP_HOST`: logged to the console in dev, FAILED in production. Providers sit behind `messaging/providers.ts` (SMS/WhatsApp stubs for later). Student invites and "forgot password" are on-demand emails (not "automatic").
+- **Student portal** (`/portal`): a student login is a `User` linked to `Student.userId` with **no roles**; the admin shell sends such users to `/portal`. Staff with `students.update` give access from the student profile (needs the student's email); the link is emailed **and** shown to copy (WhatsApp) when email isn't set up. Links: `AuthToken` (SHA-256 of a random 32-byte token), invite 7 days, reset 1 hour, single use, a new link voids older ones, setting a password signs out other sessions. "Forgot password?" on the login page (all users) never reveals whether an email exists; rate-limited. Read-only portal: fees, instalments, receipts (own receipt print), attendance, results, certificate (own print + verify link), applications, open drives for their course/branch (apply via the placement officer).
+- **Repair customers have no login**: the tracker (job no. + phone) shows the latest sent quotation **view only** (decisions still recorded by staff) and a **signed invoice link** (`/track/invoice/[id]?t=` HMAC of the id with `BETTER_AUTH_SECRET`).
+- **Dashboard** (`dashboard/dashboard.queries.ts`): tiles + lists per permission and branch scope (admissions this month, fees today/month, overdue fees, follow-ups due, open / late job cards, low stock, placement %, "waiting for you" approvals).
+- **Reports** (`reports/reports.ts`): one registry (columns + query) feeds the page, `/print/report/[key]` and `/api/reports/[key]` (Excel, audited EXPORT). Needs the report's permission + `reports.view`; export/print needs `reports.export`. OWN scope (engineers) sees only their own jobs. Accounts reports (P&L, day book) stay under Accounts.
+- **Global search** (header): students, enquiries, job cards (also IMEI/serial), customers, invoices, fee receipts; each section needs its permission and branch scope.
+- **Imports** (`imports/`): Excel template per entity (headers + a "How to fill" sheet), check first (every row, all problems at once), then **all or nothing** in one transaction; codes from the number series; the uploaded file is kept privately with the `ImportJob`. Students: records only (no admission/fees). Employees: no salary. Parts: optional opening stock (movement OPENING, needs `inventory.adjust` on that branch). Duplicates refused (student/employee phone, part SKU).
+- **Storage**: `STORAGE_DRIVER=s3` works with Cloudflare R2 / AWS S3 (`S3_*` env); local disk remains fine on one server with backups.
+- **Production seed**: `SEED_MODE=production` = real setup only (org, ADITS brand, branches, number series, roles, masters, courses, pages) + one super admin from `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` (≥12 chars). No demo data. The seed refuses demo data when `NODE_ENV=production`. Verified on an empty database. `prisma dev` is one embedded database: the database name in its URL is ignored (use a second `prisma dev --name …` instance for a clean test).
 
 ## Open points (asked in Phase 0, unanswered)
 

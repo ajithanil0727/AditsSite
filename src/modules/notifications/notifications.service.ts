@@ -1,7 +1,8 @@
 import "server-only";
 import { db, type Tx } from "@/lib/db";
+import { absoluteUrl, queueMessage } from "@/modules/messaging/outbox";
 
-/** In-app notifications (the bell). Email/WhatsApp come with message templates later. */
+/** In-app notifications (the bell). People who turned on "Email me my alerts" also get them by email (outbox). */
 export async function notify(
   tx: Tx | typeof db,
   userIds: (string | null | undefined)[],
@@ -17,6 +18,24 @@ export async function notify(
       link: message.link ?? null,
     })),
   });
+  const emailTo = await tx.user.findMany({
+    where: { id: { in: ids }, emailAlerts: true, isActive: true, deletedAt: null },
+    select: { email: true, organizationId: true },
+  });
+  for (const u of emailTo) {
+    await queueMessage(tx, {
+      organizationId: u.organizationId,
+      channel: "EMAIL",
+      to: u.email,
+      subject: message.title.slice(0, 150),
+      body: `${message.body}${message.link ? `
+
+Open: ${absoluteUrl(message.link)}` : ""}
+
+You get this because "Email me my alerts" is on in My account.`,
+      templateKey: "staff_alert",
+    });
+  }
 }
 
 export async function unreadNotifications(userId: string) {

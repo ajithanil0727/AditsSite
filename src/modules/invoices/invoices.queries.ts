@@ -57,36 +57,43 @@ export async function listInvoices(user: CurrentUser, p: ListParams, activeBranc
 }
 export type InvoiceRow = Awaited<ReturnType<typeof listInvoices>>["rows"][number];
 
-export async function getInvoice(user: CurrentUser, id: string, permission: "invoices.view" = "invoices.view") {
-  const inv = await db.invoice.findFirst({
-    where: { id, organizationId: user.organizationId },
-    include: {
-      items: { orderBy: { sortOrder: "asc" } },
-      payments: { include: { paymentMode: { select: { name: true } } }, orderBy: { paidAt: "asc" } },
-      jobCard: {
+const invoiceInclude = {
+  items: { orderBy: { sortOrder: "asc" } },
+  payments: { include: { paymentMode: { select: { name: true } } }, orderBy: { paidAt: "asc" } },
+  jobCard: {
+    select: {
+      id: true,
+      jobNo: true,
+      device: {
         select: {
-          id: true,
-          jobNo: true,
-          device: {
-            select: {
-              imei: true,
-              serialNo: true,
-              modelText: true,
-              brand: { select: { name: true } },
-              model: { select: { name: true } },
-            },
-          },
+          imei: true,
+          serialNo: true,
+          modelText: true,
+          brand: { select: { name: true } },
+          model: { select: { name: true } },
         },
       },
-      createdBy: { select: { name: true } },
-      originalInvoice: { select: { id: true, invoiceNo: true, invoiceDate: true } },
-      creditNotes: {
-        where: { status: "ISSUED" },
-        select: { id: true, invoiceNo: true, invoiceDate: true, grandTotal: true },
-        orderBy: { createdAt: "asc" },
-      },
     },
+  },
+  createdBy: { select: { name: true } },
+  originalInvoice: { select: { id: true, invoiceNo: true, invoiceDate: true } },
+  creditNotes: {
+    where: { status: "ISSUED" },
+    select: { id: true, invoiceNo: true, invoiceDate: true, grandTotal: true },
+    orderBy: { createdAt: "asc" },
+  },
+} satisfies Prisma.InvoiceInclude;
+
+/** Invoice with everything the document needs. No access check: callers check (staff scope or a signed tracker link). */
+export async function loadInvoiceDocument(id: string, organizationId?: string) {
+  return db.invoice.findFirst({
+    where: { id, ...(organizationId ? { organizationId } : {}) },
+    include: invoiceInclude,
   });
+}
+
+export async function getInvoice(user: CurrentUser, id: string, permission: "invoices.view" = "invoices.view") {
+  const inv = await loadInvoiceDocument(id, user.organizationId);
   if (!inv) return null;
   const scope = branchConstraint(user.access, permission, null);
   if (scope.branchIds && !scope.branchIds.includes(inv.branchId)) return null;

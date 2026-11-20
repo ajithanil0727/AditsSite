@@ -19,6 +19,7 @@ import { seedPhase4 } from "./phase4";
 import { seedPhase5 } from "./phase5";
 import { seedPhase6 } from "./phase6";
 import { seedPhase7 } from "./phase7";
+import { DEMO } from "./mode";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL!, max: 1 }) });
 const PASSWORD = process.env.SEED_DEFAULT_PASSWORD ?? "Demo@12345";
@@ -189,7 +190,20 @@ const SHARES: Record<string, Record<string, number>> = {
 };
 const COST_ALLOCATION: Record<string, number> = { PKD: 60, MKM: 40 };
 
+/** SEED_MODE=production: the first super admin's login comes from the environment (never a default password). */
+function productionAdmin() {
+  const email = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  if (!email) return null;
+  const password = process.env.SEED_ADMIN_PASSWORD ?? "";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("SEED_ADMIN_EMAIL isn't a valid email.");
+  if (password.length < 12 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password))
+    throw new Error("SEED_ADMIN_PASSWORD must be at least 12 characters with a letter and a number.");
+  return { email, password, name: process.env.SEED_ADMIN_NAME?.trim() || "Super Admin" };
+}
+
 async function main() {
+  if (DEMO && process.env.NODE_ENV === "production")
+    throw new Error("Refusing to create demo data with NODE_ENV=production. Run: SEED_MODE=production npm run db:seed");
   const fyStart = new Date(
     Date.UTC(new Date().getUTCMonth() >= 3 ? new Date().getUTCFullYear() : new Date().getUTCFullYear() - 1, 3, 1),
   );
@@ -354,12 +368,32 @@ async function main() {
     roleIds[r.name] = { id: role.id, scope: r.defaultScope };
   }
 
-  // --- Users ---
-  const passwordHash = await hashPassword(PASSWORD);
-  for (const u of USERS) {
+  // --- Users (production: one super admin from the environment; development: demo logins) ---
+  const prodAdmin = DEMO ? null : productionAdmin();
+  if (!DEMO && !prodAdmin) {
+    const hasSuperAdmin = await db.userRole.count({
+      where: { role: { organizationId: org.id, name: "Super Admin" }, user: { deletedAt: null } },
+    });
+    if (!hasSuperAdmin) throw new Error("First production seed: set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD.");
+  }
+  const users: typeof USERS = !DEMO
+    ? prodAdmin
+      ? [
+          {
+            email: prodAdmin.email,
+            name: prodAdmin.name,
+            phone: "",
+            roles: [{ role: "Super Admin" }],
+            branches: BRANCHES.map((b) => b.code),
+          },
+        ]
+      : []
+    : USERS;
+  const passwordHash = await hashPassword(prodAdmin?.password ?? PASSWORD);
+  for (const u of users) {
     const user = await db.user.upsert({
       where: { email: u.email },
-      create: { organizationId: org.id, email: u.email, name: u.name, phone: u.phone, emailVerified: true },
+      create: { organizationId: org.id, email: u.email, name: u.name, phone: u.phone || null, emailVerified: true },
       update: {},
     });
     const hasCredential = await db.account.findFirst({ where: { userId: user.id, providerId: "credential" } });
@@ -385,8 +419,8 @@ async function main() {
     }
   }
 
-  // --- Partners (co-owners), per-branch shares, head-office cost allocation ---
-  const owners = USERS.filter((u) => u.roles.some((r) => r.role === "Owner / Partner"));
+  // --- Partners (co-owners), per-branch shares, head-office cost allocation (demo only) ---
+  const owners = (DEMO ? USERS : []).filter((u) => u.roles.some((r) => r.role === "Owner / Partner"));
   const partnerIds: Record<string, string> = {};
   for (const o of owners) {
     const user = await db.user.findUniqueOrThrow({ where: { email: o.email } });
@@ -397,7 +431,7 @@ async function main() {
     });
     partnerIds[o.name] = partner.id;
   }
-  if ((await db.partnerShare.count()) === 0) {
+  if (DEMO && (await db.partnerShare.count()) === 0) {
     for (const [code, shares] of Object.entries(SHARES)) {
       for (const [name, percent] of Object.entries(shares)) {
         await db.partnerShare.create({
@@ -406,7 +440,7 @@ async function main() {
       }
     }
   }
-  if ((await db.costAllocation.count()) === 0) {
+  if (DEMO && (await db.costAllocation.count()) === 0) {
     for (const [code, percent] of Object.entries(COST_ALLOCATION)) {
       await db.costAllocation.create({
         data: { organizationId: org.id, branchId: branchIds[code], percent, effectiveFrom: fyStart },
@@ -429,8 +463,10 @@ async function main() {
   await seedPhase7(db, { orgId: org.id, userIds });
   await applyBrand(db, { orgId: org.id, branchIds, userIds });
 
-  console.log(`Seeded: ${BRANCHES.length} branches, ${DEFAULT_ROLES.length} roles, ${USERS.length} users.`);
-  console.log(`Sign in with e.g. arun@demo.test / ${PASSWORD} (owner) or engineer.pkd@demo.test (engineer).`);
+  console.log(`Seeded: ${BRANCHES.length} branches, ${DEFAULT_ROLES.length} roles, ${users.length} users.`);
+  if (prodAdmin)
+    console.log(`Production setup. Sign in as ${prodAdmin.email} and add the owners and staff from Settings → Users.`);
+  else console.log(`Sign in with e.g. arun@demo.test / ${PASSWORD} (owner) or engineer.pkd@demo.test (engineer).`);
 }
 
 main()

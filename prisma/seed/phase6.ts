@@ -5,6 +5,7 @@
  */
 import type { PrismaClient } from "../../src/generated/prisma/client";
 import { formatDocNumber } from "../../src/modules/numbering/format";
+import { DEMO } from "./mode";
 
 type Ctx = { orgId: string; branchIds: Record<string, string>; userIds: Record<string, string> };
 const DAY = 86_400_000;
@@ -110,6 +111,8 @@ export async function seedPhase6(db: PrismaClient, ctx: Ctx) {
       ].map(([d, name]) => ({ organizationId: orgId, date: new Date(`${d}T00:00:00.000Z`), name })),
     });
   }
+
+  if (!DEMO) return;
 
   // --- Employees linked to the demo logins ---
   const fyStart = new Date(Date.UTC(fy, 3, 1));

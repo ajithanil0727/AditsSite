@@ -17,7 +17,7 @@ async function signIn(page: Page, email: string) {
 
 /** Pick from a select inside the page's form (the top bar also has a "Branch" select). */
 async function pickSelect(page: Page, label: string, option: string | RegExp) {
-  await page.locator("form").first().getByRole("combobox", { name: label }).click();
+  await page.locator("form:not([role=search])").first().getByRole("combobox", { name: label }).click();
   await page.getByRole("option", { name: option }).first().click();
 }
 

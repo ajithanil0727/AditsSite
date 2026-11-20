@@ -14,7 +14,7 @@ async function signIn(page: Page, email: string) {
 }
 
 async function pick(page: Page, label: string, option: string | RegExp) {
-  await page.locator("form").first().getByRole("combobox", { name: label }).click();
+  await page.locator("form:not([role=search])").first().getByRole("combobox", { name: label }).click();
   await page.getByRole("option", { name: option }).first().click();
 }
 

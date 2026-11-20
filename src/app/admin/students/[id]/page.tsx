@@ -17,6 +17,7 @@ import { can, canAccessBranch } from "@/modules/rbac/access";
 import { getStudent } from "@/modules/students/students.queries";
 import { ENROLL_LABEL, ENROLL_TONE } from "../students-table";
 import { EnrollmentAcademics } from "./enrollment-academics";
+import { PortalAccess } from "./portal-access";
 import { EnrollmentActions, StudentEditDialog } from "./student-actions";
 
 export const metadata: Metadata = { title: "Student" };
@@ -34,6 +35,10 @@ export default async function StudentPage(props: PageProps<"/admin/students/[id]
   const todayYmd = today.toISOString().slice(0, 10);
   const branchIds = [...new Set(enrollments.map((x) => x.e.branchId))];
   const academics = await studentAcademics(user, s.id);
+  const portalUser = s.userId
+    ? await db.user.findUnique({ where: { id: s.userId }, select: { isActive: true, accounts: { where: { providerId: "credential" }, select: { id: true } } } })
+    : null;
+  const portalState = !portalUser ? "none" : !portalUser.isActive ? "off" : portalUser.accounts.length ? "active" : "invited";
   const [pay, allInstituteBranches] = await Promise.all([
     paymentFormOptions(user.organizationId, branchIds),
     db.branch.findMany({
@@ -346,6 +351,14 @@ export default async function StudentPage(props: PageProps<"/admin/students/[id]
               <dt className="text-muted-foreground">Since</dt>
               <dd>{formatDate(s.createdAt)}</dd>
             </dl>
+            <div className="mt-4 border-t pt-4">
+              <PortalAccess
+                studentId={s.id}
+                email={s.email}
+                state={portalState}
+                canManage={canAccessBranch(user.access, "students.update", s.branchId)}
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

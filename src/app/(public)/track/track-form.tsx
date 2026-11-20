@@ -1,6 +1,6 @@
 "use client";
 
-import { SearchIcon } from "lucide-react";
+import { FileTextIcon, SearchIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { StatusBadge, toTone } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -121,6 +121,53 @@ export function TrackForm() {
                 </>
               )}
             </dl>
+
+            {job.quote && (
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                  <span className="font-medium">Quotation</span>
+                  <span className="text-muted-foreground">
+                    {job.quote.status === "APPROVED"
+                      ? "Approved"
+                      : job.quote.status === "REJECTED"
+                        ? "Declined"
+                        : job.quote.status === "EXPIRED"
+                          ? "Expired"
+                          : "Waiting for your decision"}
+                    {job.quote.validUntil && job.quote.status === "SENT" ? ` · valid until ${formatDate(job.quote.validUntil)}` : ""}
+                  </span>
+                </div>
+                <ul className="divide-y rounded-md border text-sm">
+                  {job.quote.items.map((it, i) => (
+                    <li key={i} className="flex justify-between gap-2 px-3 py-1.5">
+                      <span>
+                        {it.description}
+                        {it.qty !== 1 ? ` × ${it.qty}` : ""}
+                      </span>
+                      <span className="tabular-nums">{formatINR(it.amount)}</span>
+                    </li>
+                  ))}
+                  <li className="flex justify-between gap-2 px-3 py-1.5 font-medium">
+                    <span>Total (incl. GST)</span>
+                    <span className="tabular-nums">{formatINR(job.quote.total)}</span>
+                  </li>
+                </ul>
+                {job.quote.status === "SENT" && (
+                  <p className="text-xs text-muted-foreground">To approve or decline, call or WhatsApp {job.branch.name} on {job.branch.phone}.</p>
+                )}
+              </div>
+            )}
+
+            {job.invoice && (
+              <a
+                href={job.invoice.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
+              >
+                <FileTextIcon className="size-4" /> Invoice {job.invoice.number}
+              </a>
+            )}
 
             {job.notes.length > 0 && (
               <div className="space-y-2">

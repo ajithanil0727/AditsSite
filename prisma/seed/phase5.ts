@@ -4,6 +4,7 @@
  * categories exist. Amounts are DEMO figures.
  */
 import type { PrismaClient } from "../../src/generated/prisma/client";
+import { DEMO } from "./mode";
 
 type Ctx = { orgId: string; branchIds: Record<string, string>; userIds: Record<string, string> };
 const DAY = 86_400_000;
@@ -33,6 +34,7 @@ export async function seedPhase5(db: PrismaClient, ctx: Ctx) {
   const incomeNames = ["Workshop / seminar", "Scrap sale", "Interest", "Other"];
   await db.expenseCategory.createMany({ data: expenseNames.map((name) => ({ organizationId: orgId, name })) });
   await db.incomeCategory.createMany({ data: incomeNames.map((name) => ({ organizationId: orgId, name })) });
+  if (!DEMO) return; // demo expenses, income and partner entries below
   const exp = Object.fromEntries(
     (await db.expenseCategory.findMany({ where: { organizationId: orgId } })).map((c) => [c.name, c.id]),
   );

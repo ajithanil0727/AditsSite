@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { normalizeIndianPhone } from "@/lib/format";
+import { invoiceLink } from "./tracker-links";
 
 /** Public repair tracker: job number + phone. Rate-limited per IP to stop guessing. */
 
@@ -41,6 +42,15 @@ export type TrackResult =
         timeline: { status: string; at: string }[];
         notes: { note: string; at: string }[];
         branch: { name: string; phone: string };
+        /** Latest quotation sent to the customer (view only: decisions are recorded by staff). */
+        quote: {
+          version: number;
+          status: string;
+          total: number;
+          validUntil: string | null;
+          items: { description: string; qty: number; amount: number }[];
+        } | null;
+        invoice: { number: string; url: string } | null;
       };
     };
 
@@ -70,7 +80,13 @@ export async function trackRepair(input: { jobNo: string; phone: string }): Prom
       notes: { where: { isInternal: false }, orderBy: { createdAt: "asc" } },
       invoices: {
         where: { status: "ISSUED", kind: { not: "CREDIT_NOTE" } },
-        select: { grandTotal: true, amountPaid: true },
+        select: { id: true, invoiceNo: true, grandTotal: true, amountPaid: true },
+      },
+      quotations: {
+        where: { status: { not: "DRAFT" } },
+        orderBy: { version: "desc" },
+        take: 1,
+        include: { items: { orderBy: { sortOrder: "asc" } } },
       },
     },
   });
@@ -95,6 +111,16 @@ export async function trackRepair(input: { jobNo: string; phone: string }): Prom
       timeline: job.history.map((h) => ({ status: h.toStatus.name, at: h.createdAt.toISOString() })),
       notes: job.notes.map((n) => ({ note: n.note, at: n.createdAt.toISOString() })),
       branch: job.branch,
+      quote: job.quotations[0]
+        ? {
+            version: job.quotations[0].version,
+            status: job.quotations[0].status,
+            total: Number(job.quotations[0].total),
+            validUntil: job.quotations[0].validUntil?.toISOString() ?? null,
+            items: job.quotations[0].items.map((i) => ({ description: i.description, qty: Number(i.qty), amount: Number(i.amount) })),
+          }
+        : null,
+      invoice: inv ? { number: inv.invoiceNo, url: invoiceLink(inv.id) } : null,
     },
   };
 }

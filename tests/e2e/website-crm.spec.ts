@@ -54,7 +54,7 @@ test("website enquiry → follow-up → admission", async ({ page }) => {
   await expect(page).toHaveURL(/\/admin\/students\/new\?lead=/);
   await expect(page.getByLabel("Full name")).toHaveValue("Website Visitor");
   await expect(page.getByLabel("Mobile number")).toHaveValue(phone);
-  await page.locator("form").first().getByRole("combobox", { name: "Fee plan" }).click();
+  await page.locator("form:not([role=search])").first().getByRole("combobox", { name: "Fee plan" }).click();
   await page.getByRole("option", { name: "Full payment" }).click();
   await page.getByRole("button", { name: "Admit student" }).click();
   await expect(page.getByText("Admission saved.")).toBeVisible();

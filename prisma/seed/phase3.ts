@@ -6,6 +6,7 @@ import type { PrismaClient } from "../../src/generated/prisma/client";
 import type { DocType } from "../../src/generated/prisma/enums";
 import { financialYear } from "../../src/lib/fy";
 import { DEFAULT_FORMATS, formatDocNumber } from "../../src/modules/numbering/format";
+import { DEMO } from "./mode";
 
 type Ctx = { orgId: string; branchIds: Record<string, string>; userIds: Record<string, string> };
 const DAY = 86_400_000;
@@ -113,6 +114,7 @@ export async function seedPhase3(db: PrismaClient, ctx: Ctx) {
     courses[c.code] = { id: course.id, fee: c.fee };
   }
 
+  if (!DEMO) return; // demo batches, students and fees below
   const trainer = ctx.userIds["trainer.pkd@demo.test"];
   const now = new Date();
   const started = dateOnly(new Date(now.getTime() - 40 * DAY));

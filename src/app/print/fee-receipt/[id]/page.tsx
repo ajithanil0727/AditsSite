@@ -2,15 +2,15 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { amountInWords, formatDate, formatINR } from "@/lib/format";
-import { requirePagePermission } from "@/modules/auth/current";
+import { requireUser } from "@/modules/auth/current";
 import { canAccessBranch } from "@/modules/rbac/access";
 import { getCompanyProfile } from "@/modules/settings/settings.service";
 
 export const metadata: Metadata = { title: "Fee receipt" };
 
-/** Fee receipt (no GST invoice for fees yet: Phase 3 decision, pending the CA's advice). */
+/** Fee receipt (no GST invoice for fees yet: Phase 3 decision, pending the CA's advice). Students can open their own. */
 export default async function PrintFeeReceiptPage(props: PageProps<"/print/fee-receipt/[id]">) {
-  const user = await requirePagePermission("fees.view");
+  const user = await requireUser();
   const { id } = await props.params;
   const pay = await db.feePayment.findFirst({
     where: { id, organizationId: user.organizationId },
@@ -21,14 +21,15 @@ export default async function PrintFeeReceiptPage(props: PageProps<"/print/fee-r
       allocations: { include: { installment: { select: { label: true } } } },
       enrollment: {
         include: {
-          student: { select: { name: true, studentCode: true, phone: true } },
+          student: { select: { name: true, studentCode: true, phone: true, userId: true } },
           course: { select: { name: true } },
           installments: { select: { amount: true, paidAmount: true, status: true } },
         },
       },
     },
   });
-  if (!pay || !canAccessBranch(user.access, "fees.view", pay.branchId)) notFound();
+  // Staff with fees.view on the branch, or the student themselves (portal).
+  if (!pay || !(canAccessBranch(user.access, "fees.view", pay.branchId) || pay.enrollment.student.userId === user.id)) notFound();
   const company = await getCompanyProfile(user.organizationId);
   const amount = Number(pay.amount);
   const balance = pay.enrollment.installments

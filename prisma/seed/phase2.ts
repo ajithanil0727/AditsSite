@@ -6,6 +6,7 @@ import type { PrismaClient } from "../../src/generated/prisma/client";
 import type { DocType, JobStatusKey, PartKind } from "../../src/generated/prisma/enums";
 import { financialYear } from "../../src/lib/fy";
 import { DEFAULT_FORMATS, formatDocNumber } from "../../src/modules/numbering/format";
+import { DEMO } from "./mode";
 
 type Ctx = { orgId: string; branchIds: Record<string, string>; userIds: Record<string, string> };
 
@@ -332,6 +333,8 @@ export async function seedPhase2(db: PrismaClient, ctx: Ctx) {
       () => db.vendor.create({ data: { organizationId: orgId, ...v } }),
     );
   }
+
+  if (!DEMO) return; // demo parts, stock and job cards below
 
   // --- Parts + opening stock ---
   const partDefs: {

@@ -7,6 +7,7 @@
 import type { Prisma, PrismaClient } from "../../src/generated/prisma/client";
 import { SECTIONS, SYSTEM_PAGES, type SectionType } from "../../src/modules/website/sections";
 import { DEFAULT_SITE, SITE_KEY } from "../../src/modules/website/site-settings";
+import { DEMO } from "./mode";
 
 type Ctx = { orgId: string; branchIds: Record<string, string>; userIds: Record<string, string> };
 const json = (v: unknown) => v as Prisma.InputJsonValue;
@@ -436,6 +437,8 @@ export async function seedPhase4(db: PrismaClient, ctx: Ctx) {
       },
     });
   }
+
+  if (!DEMO) return;
 
   // --- A few enquiries (Palakkad) ---
   if ((await db.lead.count({ where: { organizationId: orgId } })) === 0 && branchIds.PKD) {
