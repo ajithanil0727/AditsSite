@@ -2231,6 +2231,8 @@ model LeaveRequest {
   decidedBy    User?          @relation(fields: [decidedById], references: [id])
   decidedAt    DateTime?
   decisionNote String?
+  /// Who entered it (the employee, or HR on their behalf). Nobody approves their own request.
+  requestedById String?
   createdAt    DateTime       @default(now())
 
   @@index([employeeId, status])
@@ -2331,6 +2333,8 @@ model Payslip {
   paidAt          DateTime?
   moneyAccountId  String?
   moneyAccount    MoneyAccount? @relation(fields: [moneyAccountId], references: [id])
+  /// Attendance summary used for this payslip (present, LOP, unmarked days…).
+  summary         Json?
 
   items          PayslipItem[]
   incentiveLines Incentive[]
@@ -2361,6 +2365,8 @@ model SalaryAdvance {
   moneyAccountId  String
   moneyAccount    MoneyAccount  @relation(fields: [moneyAccountId], references: [id])
   note            String?
+  createdById     String?
+  createdAt       DateTime      @default(now())
 }
 
 model Incentive {
@@ -2377,6 +2383,8 @@ model Incentive {
   approvedBy   User?           @relation(fields: [approvedById], references: [id])
   payslipId    String?
   payslip      Payslip?        @relation(fields: [payslipId], references: [id])
+  createdById  String?
+  approvedAt   DateTime?
   createdAt    DateTime        @default(now())
 }
 

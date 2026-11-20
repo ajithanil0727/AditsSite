@@ -42,7 +42,13 @@ export type NavIcon =
   | "income"
   | "pnl"
   | "partners"
-  | "distribution";
+  | "distribution"
+  | "employees"
+  | "staffAttendance"
+  | "leave"
+  | "holidays"
+  | "payroll"
+  | "incentives";
 
 export type NavItem = {
   title: string;
@@ -57,6 +63,7 @@ export type NavItem = {
 export type NavGroup = { label: string; items: NavItem[] };
 
 const MASTER_PERMISSIONS: PermissionKey[] = [
+  "masters.hr",
   "masters.service",
   "masters.inventory",
   "masters.accounts",
@@ -147,6 +154,17 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
+    label: "HR",
+    items: [
+      { title: "Employees", href: "/admin/hr/employees", icon: "employees", permissions: ["employees.view"] },
+      { title: "Attendance", href: "/admin/hr/attendance", icon: "staffAttendance", permissions: ["hr_attendance.view"] },
+      { title: "Leave", href: "/admin/hr/leave", icon: "leave", permissions: ["leaves.apply", "leaves.approve"] },
+      { title: "Holidays", href: "/admin/hr/holidays", icon: "holidays", permissions: ["hr_attendance.view"] },
+      { title: "Payroll", href: "/admin/hr/payroll", icon: "payroll", permissions: ["payroll.view"] },
+      { title: "Incentives", href: "/admin/hr/incentives", icon: "incentives", permissions: ["incentives.manage", "incentives.approve"] },
+    ],
+  },
+  {
     label: "Website",
     items: [
       { title: "Pages", href: "/admin/website/pages", icon: "pages", permissions: ["website.view"] },
@@ -217,6 +235,13 @@ export const SEGMENT_LABELS: Record<string, string> = {
   new: "New",
   account: "My account",
   accounts: "Accounts",
+  hr: "HR",
+  employees: "Employees",
+  attendance: "Attendance",
+  leave: "Leave",
+  holidays: "Holidays",
+  payroll: "Payroll",
+  incentives: "Incentives",
   daybook: "Day book",
   expenses: "Expenses",
   income: "Other income",
@@ -257,6 +282,11 @@ export const SEGMENT_LABELS: Record<string, string> = {
   moneyAccount: "Cash & bank accounts",
   expenseCategory: "Expense categories",
   incomeCategory: "Other income categories",
+  department: "Departments",
+  designation: "Designations",
+  shift: "Shifts",
+  leaveType: "Leave types",
+  salaryComponent: "Salary components",
 };
 
 /** Path segments with no page of their own (breadcrumbs render them as text). */
@@ -267,4 +297,5 @@ export const NON_LINK_SEGMENTS = new Set([
   "/admin/fees",
   "/admin/website",
   "/admin/accounts",
+  "/admin/hr",
 ]);

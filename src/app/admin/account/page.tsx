@@ -4,7 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { requireUser } from "@/modules/auth/current";
+import { myEmployee } from "@/modules/hr/hr.queries";
+import { MONTHS } from "@/modules/hr/hr.schemas";
 import { SCOPE_LABELS } from "@/modules/users/users.schemas";
+import { formatINR } from "@/lib/format";
+import Link from "next/link";
 import { ChangePasswordForm } from "./change-password-form";
 
 export const metadata: Metadata = { title: "My account" };
@@ -23,6 +27,7 @@ export default async function AccountPage() {
       branches: { select: { branch: { select: { name: true } } }, orderBy: { branch: { sortOrder: "asc" } } },
     },
   });
+  const employee = await myEmployee(user);
   const rows: [string, string][] = [
     ["Name", me.name],
     ["Email (sign-in)", me.email],
@@ -64,6 +69,27 @@ export default async function AccountPage() {
             <ChangePasswordForm />
           </CardContent>
         </Card>
+        {employee && (
+          <Card>
+            <CardHeader>
+              <CardTitle>My payslips</CardTitle>
+              <CardDescription>
+                {employee.name} · {employee.employeeCode}. Apply for leave under HR → Leave.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-1 text-sm">
+              {employee.payslips.length === 0 && <p className="text-muted-foreground">No payslips yet.</p>}
+              {employee.payslips.map((p) => (
+                <div key={p.id} className="flex justify-between">
+                  <Link href={`/print/payslip/${p.id}`} target="_blank" className="hover:underline">
+                    {MONTHS[p.payrollRun.month - 1]} {p.payrollRun.year}
+                  </Link>
+                  <span className="tabular-nums">{formatINR(Number(p.netPay))}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </>
   );

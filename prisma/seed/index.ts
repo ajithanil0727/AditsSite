@@ -17,6 +17,7 @@ import { seedPhase3 } from "./phase3";
 import { ADITS_COMPANY, applyBrand } from "./brand";
 import { seedPhase4 } from "./phase4";
 import { seedPhase5 } from "./phase5";
+import { seedPhase6 } from "./phase6";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL!, max: 1 }) });
 const PASSWORD = process.env.SEED_DEFAULT_PASSWORD ?? "Demo@12345";
@@ -240,16 +241,21 @@ async function main() {
     });
     branchIds[b.code] = branch.id;
     const fy = financialYear(new Date());
-    for (const [docType, def] of Object.entries(DEFAULT_FORMATS) as [DocType, { format: string; padding: number }][]) {
+    for (const [docType, def] of Object.entries(DEFAULT_FORMATS) as [
+      DocType,
+      { format: string; padding: number; reset?: "NEVER" },
+    ][]) {
+      const key = def.reset === "NEVER" ? "ALL" : fy;
       await db.numberSeries.upsert({
-        where: { branchId_docType_financialYear: { branchId: branch.id, docType, financialYear: fy } },
+        where: { branchId_docType_financialYear: { branchId: branch.id, docType, financialYear: key } },
         create: {
           organizationId: org.id,
           branchId: branch.id,
           docType,
-          financialYear: fy,
+          financialYear: key,
           format: def.format,
           padding: def.padding,
+          ...(def.reset ? { resetPolicy: def.reset } : {}),
         },
         update: {},
       });
@@ -403,6 +409,7 @@ async function main() {
   await seedPhase3(db, { orgId: org.id, branchIds, userIds });
   await seedPhase4(db, { orgId: org.id, branchIds, userIds });
   await seedPhase5(db, { orgId: org.id, branchIds, userIds });
+  await seedPhase6(db, { orgId: org.id, branchIds, userIds });
   await applyBrand(db, { orgId: org.id, branchIds, userIds });
 
   console.log(`Seeded: ${BRANCHES.length} branches, ${DEFAULT_ROLES.length} roles, ${USERS.length} users.`);

@@ -26,6 +26,7 @@ export type BranchFigures = {
   partsUsed: number; // issued to jobs, net of returns
   internalUse: number;
   stockAdjustments: number; // stock written off (adjustments out)
+  salaries: number; // finalised payroll for months ending in the period: earned pay + incentives
   expenses: Amount[];
 };
 
@@ -41,6 +42,7 @@ export const EMPTY_FIGURES: BranchFigures = {
   partsUsed: 0,
   internalUse: 0,
   stockAdjustments: 0,
+  salaries: 0,
   expenses: [],
 };
 
@@ -62,6 +64,7 @@ export function computePnl(f: BranchFigures): Pnl {
     { key: "parts", label: "Spare parts used in repairs", section: "cost", amount: f.partsUsed },
     { key: "internal", label: "Parts used internally", section: "cost", amount: f.internalUse },
     { key: "stockAdj", label: "Stock written off", section: "cost", amount: f.stockAdjustments },
+    { key: "salaries", label: "Salaries (payroll)", section: "cost", amount: f.salaries },
     ...f.expenses.map((e) => ({ key: `exp:${e.key}`, label: e.label, section: "cost" as const, amount: e.amount })),
   ];
   const keep = (l: PnlLine) => l.amount !== 0 || ["fees", "service", "parts"].includes(l.key);
@@ -90,6 +93,7 @@ export function sumFigures(list: BranchFigures[]): BranchFigures {
     partsUsed: list.reduce((a, f) => a + f.partsUsed, 0),
     internalUse: list.reduce((a, f) => a + f.internalUse, 0),
     stockAdjustments: list.reduce((a, f) => a + f.stockAdjustments, 0),
+    salaries: list.reduce((a, f) => a + f.salaries, 0),
     expenses: merge(list.map((f) => f.expenses)),
   };
 }

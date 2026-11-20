@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import type { CurrentUser } from "@/modules/auth/current";
 import { branchConstraint } from "@/modules/rbac/access";
 import { rupeesToPaise } from "@/modules/tax/gst";
+import { salaryCost } from "@/modules/hr/payroll-logic";
 import { computePnl, EMPTY_FIGURES, expenseCost, sumFigures, type BranchFigures, type Pnl } from "./pnl-logic";
 
 const DAY = 86_400_000;
@@ -84,6 +85,21 @@ export async function branchFigures(orgId: string, branchIds: string[], from: st
     }),
   ]);
 
+  // Salaries: payroll months whose last day falls in the period (finalised or paid runs).
+  const months: { year: number; month: number }[] = [];
+  for (let d = new Date(dateOnly(from).getTime()); d <= dateOnly(to); d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1))) {
+    const monthEnd = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
+    if (monthEnd >= dateOnly(from) && monthEnd <= dateOnly(to)) months.push({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 });
+  }
+  const payroll = months.length
+    ? await db.payslip.findMany({
+        where: {
+          payrollRun: { organizationId: orgId, branchId: inBranches, status: { in: ["FINALIZED", "PAID"] }, OR: months },
+        },
+        select: { grossEarnings: true, lopAmount: true, incentives: true, payrollRun: { select: { branchId: true } } },
+      })
+    : [];
+
   const catIds = [...new Set([...incomes.map((i) => i.categoryId), ...expenses.map((e) => e.categoryId)])];
   const [incCats, expCats] = await Promise.all([
     db.incomeCategory.findMany({ where: { id: { in: catIds } }, select: { id: true, name: true } }),
@@ -139,6 +155,9 @@ export async function branchFigures(orgId: string, branchIds: string[], from: st
       internalUse: -stockValue("INTERNAL_USE"),
       // Only write-offs count. Stock added by an adjustment isn't a gain (adjustments are also used to top up stock).
       stockAdjustments: -stockValue("ADJUSTMENT_OUT"),
+      salaries: payroll
+        .filter((s) => s.payrollRun.branchId === b.id)
+        .reduce((a, s) => a + salaryCost({ grossEarnings: p(s.grossEarnings), lopAmount: p(s.lopAmount), incentives: p(s.incentives) }), 0),
       expenses: expenses
         .filter((e) => e.branchId === b.id)
         .map((e) => ({

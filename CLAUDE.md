@@ -11,7 +11,8 @@ Brief: `PROJECT_BRIEF.md` · Design: `docs/PHASE_0_DESIGN.md` · Schema: `prisma
 - Phase 3 (students + fees): done 2026-11-18. Courses (fee plans, syllabus), batches, admissions (editable instalment schedule), student profiles, fee collection + receipts, receipt cancellation, discounts with approval, refunds (request → approve → pay), transfers, dropout, instalment waivers, batch attendance, dues / receipts / approvals screens, printable fee receipt.
 - Phase 4 (website + CRM): done 2026-11-18. Public site (GSAP home, pastel pages, course/service pages, enquiry + repair booking forms, sitemap/robots), content manager (page sections with draft → preview → publish, menus, media library with crop + alt text, services/testimonials/stories/gallery/FAQs/banners/companies, site settings), enquiries/CRM (round-robin, follow-ups, timeline, convert to admission / job card, conversion report), notification bell.
 - Phase 5 (accounts): done 2026-11-20. Expenses (approval above a limit, bills, pay later), other income, day book with balances + transfers between accounts, branch and combined P&L, partners (optional shares per branch from a date, capital, drawings), profit distribution runs (draft → lock), credit notes for delivered repairs (with refund), Excel export (P&L, day book, expenses). Also: Super Admin role, My account (change password), real ADITS branches/courses in the seed.
-- Next: Phase 6 (HR + payroll) per the brief, unless the owners reprioritise.
+- Phase 6 (HR + payroll): done 2026-11-20. Employees (profile, documents, sensitive PAN/bank fields), HR masters (departments, designations, shifts, leave types, salary components), holidays, daily staff attendance, leave (apply → approve, yearly balances), salary structures, advances with monthly recovery, manual incentives with approval, monthly payroll per branch (draft → finalise → pay), payslips (print + My account), salaries in the P&L.
+- Next: Phase 7 per the brief, unless the owners reprioritise.
 
 ## Stack
 
@@ -111,6 +112,19 @@ Read `node_modules/next/dist/docs/` before using a Next API you haven't used her
 - **Credit notes**: only after delivery (before delivery, cancel the invoice). Full credit copies the lines; partial is split across the invoice's GST rates by value. Optional refund (ServicePayment REFUND + day book). Number series CREDIT_NOTE (`PKD/C2627/00001`).
 - Excel via `exceljs` at `/api/export/[report]` (pnl, daybook, expenses), same permissions as the pages, audited (EXPORT).
 - Payroll isn't built: salaries go in as expenses until the HR phase.
+
+### Phase 6 decisions (HR + payroll)
+
+- **Sunday** is the only weekly off; Sundays and holidays (org-wide or per branch) are paid.
+- **A day's pay = monthly salary ÷ days in that month** (`hr/payroll-logic.ts`). Earnings are prorated by paid days; fixed deductions aren't. Paid days = days employed in the month − absences − ½ per half day − unpaid leave. Late = present.
+- **Leave**: 12 casual + 6 sick per FY (April–March), paid; unused leave lapses (no carry forward); anything beyond is loss of pay. Quotas live on the Leave type master. A request can't cross 31 March, can't overlap another, and Sundays/holidays inside it aren't counted. Approver ≠ requester ≠ the employee. Approval updates `LeaveBalance` and marks the days LEAVE; cancelling an approved leave gives the days back.
+- **Attendance** is marked daily by a manager/HR (`hr_attendance.mark`), no future dates. **Unmarked working days count as present** but are flagged (count shown before finalising).
+- **Incentives** are manual only and need approval by someone other than the person who entered them; approved ones join that month's payslip at finalise.
+- **Advances**: paid out of a money account (day book SALARY_ADVANCE), recovered monthly (capped at net pay), oldest first, at finalise. An advance isn't a P&L cost.
+- **Payroll** per branch per month: draft (rebuild any time; employees without a salary structure are skipped and listed) → **finalise** (locks that month's attendance, leave and salary-structure changes) → **pay** (one day-book PAYROLL entry per payslip). No PF/ESI/PT/TDS.
+- **P&L**: salary cost = earned pay (gross − LOP) + incentives, counted in the **month the salary is for**, once finalised. Don't also enter salaries as expenses from now on (that would count them twice).
+- Employee IDs: EMPLOYEE_ID series `PKD-E001`, per branch, **never resets** (`reset: "NEVER"`, FY key "ALL").
+- Demo HR data (`prisma/seed/phase6.ts`, runs once when no employees exist): employees linked to the demo logins with DEMO salaries, last month's attendance, one approved leave, an advance and an incentive. Holidays seeded are fixed-date national ones only; Onam/Vishu etc. are added in HR → Holidays.
 
 ## Open points (asked in Phase 0, unanswered)
 

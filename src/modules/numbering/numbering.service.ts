@@ -26,9 +26,10 @@ export async function nextDocNumber(
     where: { branchId: opts.branchId, docType: opts.docType },
     orderBy: { updatedAt: "desc" },
   });
-  const resetPolicy = template?.resetPolicy ?? "FINANCIAL_YEAR";
-  const fyKey = resetPolicy === "NEVER" ? "ALL" : financialYear(date);
   const defaults = DEFAULT_FORMATS[opts.docType];
+  // Types whose format has no year (employee IDs) never reset, whatever an older series row says.
+  const resetPolicy = defaults.reset ?? template?.resetPolicy ?? "FINANCIAL_YEAR";
+  const fyKey = resetPolicy === "NEVER" ? "ALL" : financialYear(date);
 
   const series = await tx.numberSeries.upsert({
     where: {

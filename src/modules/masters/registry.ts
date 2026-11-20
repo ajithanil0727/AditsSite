@@ -38,7 +38,7 @@ export type MasterDef = {
   kind: MasterKind;
   label: string;
   singular: string;
-  group: "Enquiries" | "Service" | "Inventory" | "Accounts" | "Purchase";
+  group: "Enquiries" | "Service" | "Inventory" | "Accounts" | "Purchase" | "HR";
   description: string;
   permission: PermissionKey;
   fields: MasterField[];
@@ -65,6 +65,11 @@ export const MASTER_KINDS = [
   "taxRate",
   "hsnSac",
   "moneyAccount",
+  "department",
+  "designation",
+  "shift",
+  "leaveType",
+  "salaryComponent",
 ] as const;
 export type MasterKind = (typeof MASTER_KINDS)[number];
 
@@ -348,6 +353,81 @@ export const MASTERS: Record<MasterKind, MasterDef> = {
     description: "Income other than fees and repairs: workshops, scrap sales, interest…",
     fields: [{ name: "name", label: "Name", type: "text", required: true, max: 80 }, active],
     columns: ["name", "isActive"],
+  },
+  department: {
+    kind: "department",
+    label: "Departments",
+    singular: "department",
+    group: "HR",
+    permission: "masters.hr",
+    description: "Training, Service, Front office, Accounts…",
+    fields: [{ name: "name", label: "Name", type: "text", required: true, max: 60 }, active],
+    columns: ["name", "isActive"],
+  },
+  designation: {
+    kind: "designation",
+    label: "Designations",
+    singular: "designation",
+    group: "HR",
+    permission: "masters.hr",
+    description: "Trainer, Service engineer, Counsellor, Branch manager…",
+    fields: [{ name: "name", label: "Name", type: "text", required: true, max: 60 }, active],
+    columns: ["name", "isActive"],
+  },
+  shift: {
+    kind: "shift",
+    label: "Shifts",
+    singular: "shift",
+    group: "HR",
+    permission: "masters.hr",
+    description: "Working hours. Sunday is the weekly off for everyone.",
+    fields: [
+      { name: "name", label: "Name", type: "text", required: true, max: 40 },
+      { name: "startTime", label: "Starts (HH:MM)", type: "text", required: true, max: 5 },
+      { name: "endTime", label: "Ends (HH:MM)", type: "text", required: true, max: 5 },
+      { name: "graceMinutes", label: "Late after (minutes)", type: "number", min: 0, max: 120 },
+    ],
+    columns: ["name", "startTime", "endTime"],
+  },
+  leaveType: {
+    kind: "leaveType",
+    label: "Leave types",
+    singular: "leave type",
+    group: "HR",
+    permission: "masters.hr",
+    description: "Days per financial year (April–March). Unpaid types count as loss of pay.",
+    fields: [
+      { name: "name", label: "Name", type: "text", required: true, max: 40 },
+      { name: "annualQuota", label: "Days per year", type: "number", required: true, min: 0, max: 365, step: 0.5 },
+      { name: "isPaid", label: "Paid leave", type: "switch", default: true },
+      { name: "carryForward", label: "Unused days carry forward", type: "switch" },
+      active,
+    ],
+    columns: ["name", "annualQuota", "isPaid", "isActive"],
+  },
+  salaryComponent: {
+    kind: "salaryComponent",
+    label: "Salary components",
+    singular: "salary component",
+    group: "HR",
+    permission: "masters.hr",
+    description: "Earnings (Basic, HRA, allowances) and fixed deductions (uniform, mess…). No PF/ESI/PT/TDS.",
+    fields: [
+      { name: "name", label: "Name", type: "text", required: true, max: 60 },
+      {
+        name: "type",
+        label: "Type",
+        type: "select",
+        required: true,
+        options: [
+          { value: "EARNING", label: "Earning" },
+          { value: "DEDUCTION", label: "Deduction" },
+        ],
+      },
+      sort,
+      active,
+    ],
+    columns: ["name", "type", "sortOrder", "isActive"],
   },
   moneyAccount: {
     kind: "moneyAccount",

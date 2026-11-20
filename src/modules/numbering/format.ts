@@ -65,7 +65,7 @@ export function checkFormat(opts: {
  * Default formats per document type, seeded for each branch.
  * GST documents fit 16 characters with branch codes of up to 4 characters (BRANCH_CODE_MAX).
  */
-export const DEFAULT_FORMATS: Record<DocType, { format: string; padding: number }> = {
+export const DEFAULT_FORMATS: Record<DocType, { format: string; padding: number; reset?: "NEVER" }> = {
   JOB_CARD: { format: "{BRANCH}/JC/{FY}/{SEQ}", padding: 5 },
   QUOTATION: { format: "{BRANCH}/QT/{FY}/{SEQ}", padding: 5 },
   TAX_INVOICE: { format: "{BRANCH}/{FYS}/{SEQ}", padding: 5 },
@@ -77,7 +77,8 @@ export const DEFAULT_FORMATS: Record<DocType, { format: string; padding: number 
   CERTIFICATE: { format: "{BRANCH}/CERT/{FY}/{SEQ}", padding: 5 },
   PURCHASE: { format: "{BRANCH}/PU/{FY}/{SEQ}", padding: 5 },
   STOCK_TRANSFER: { format: "{BRANCH}/ST/{FY}/{SEQ}", padding: 5 },
-  EMPLOYEE_ID: { format: "{BRANCH}-E{SEQ}", padding: 3 },
+  // No year in the code, so the series must never restart (PKD-E001 stays unique).
+  EMPLOYEE_ID: { format: "{BRANCH}-E{SEQ}", padding: 3, reset: "NEVER" },
   SERVICE_RECEIPT: { format: "{BRANCH}/SR/{FY}/{SEQ}", padding: 5 },
 };
 

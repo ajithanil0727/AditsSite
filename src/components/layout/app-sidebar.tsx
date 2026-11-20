@@ -41,6 +41,12 @@ import {
   TrendingUpIcon,
   HandshakeIcon,
   PieChartIcon,
+  IdCardIcon,
+  CalendarCheckIcon,
+  PlaneIcon,
+  CalendarHeartIcon,
+  BanknoteIcon,
+  AwardIcon,
   type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -102,6 +108,12 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   pnl: TrendingUpIcon,
   partners: HandshakeIcon,
   distribution: PieChartIcon,
+  employees: IdCardIcon,
+  staffAttendance: CalendarCheckIcon,
+  leave: PlaneIcon,
+  holidays: CalendarHeartIcon,
+  payroll: BanknoteIcon,
+  incentives: AwardIcon,
 };
 
 export function AppSidebar({
