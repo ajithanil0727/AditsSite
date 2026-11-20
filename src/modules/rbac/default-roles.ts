@@ -149,6 +149,8 @@ export const DEFAULT_ROLES: DefaultRole[] = [
       "jobcards.view",
       "jobcards.create",
       "quotations.record_decision",
+      "expenses.view",
+      "expenses.create", // petty expenses; above the approval limit they wait for approval
       "leaves.apply",
     ]),
     discountLimitPercent: 0,

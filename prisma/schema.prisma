@@ -2612,6 +2612,10 @@ model ProfitDistributionRun {
   lockedById     String?
   lockedBy       User?              @relation(fields: [lockedById], references: [id])
   lockedAt       DateTime?
+  note           String?
+  /// Branch totals at the time of the run, including what wasn't distributed (no shares set).
+  summary        Json?
+  createdById    String?
   createdAt      DateTime           @default(now())
 
   lines ProfitDistributionLine[]
@@ -2630,6 +2634,9 @@ model ProfitDistributionLine {
   branchNetProfit Decimal               @db.Decimal(14, 2)
   sharePercent    Decimal               @db.Decimal(5, 2)
   amount          Decimal               @db.Decimal(14, 2)
+  /// The part of the run's period this line covers (shares can change mid-period).
+  segmentFrom     DateTime?             @db.Date
+  segmentTo       DateTime?             @db.Date
 }
 
 // =============================================================================

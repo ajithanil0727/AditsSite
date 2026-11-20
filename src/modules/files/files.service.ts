@@ -12,6 +12,9 @@ export const IMAGE_TYPES: Record<string, string> = {
 };
 // SVG is deliberately not accepted: it can carry scripts.
 
+/** Bills and documents: images or PDF. Stored privately (signed-in users only). */
+export const DOCUMENT_TYPES: Record<string, string> = { ...IMAGE_TYPES, "application/pdf": "pdf" };
+
 export async function saveUpload(
   actor: AuditActor & { userId: string },
   file: File,

@@ -36,7 +36,13 @@ export type NavIcon =
   | "menu"
   | "media"
   | "content"
-  | "globe";
+  | "globe"
+  | "daybook"
+  | "expense"
+  | "income"
+  | "pnl"
+  | "partners"
+  | "distribution";
 
 export type NavItem = {
   title: string;
@@ -125,6 +131,22 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
+    label: "Accounts",
+    items: [
+      { title: "Day book", href: "/admin/accounts/daybook", icon: "daybook", permissions: ["accounts.view_daybook"] },
+      { title: "Expenses", href: "/admin/accounts/expenses", icon: "expense", permissions: ["expenses.view"] },
+      { title: "Other income", href: "/admin/accounts/income", icon: "income", permissions: ["income.view"] },
+      { title: "Profit & loss", href: "/admin/accounts/pnl", icon: "pnl", permissions: ["reports.financial"] },
+      { title: "Partners", href: "/admin/accounts/partners", icon: "partners", permissions: ["partners.view"] },
+      {
+        title: "Profit distribution",
+        href: "/admin/accounts/profit-distribution",
+        icon: "distribution",
+        permissions: ["profit.view"],
+      },
+    ],
+  },
+  {
     label: "Website",
     items: [
       { title: "Pages", href: "/admin/website/pages", icon: "pages", permissions: ["website.view"] },
@@ -194,6 +216,13 @@ export const SEGMENT_LABELS: Record<string, string> = {
   approvals: "Approvals",
   new: "New",
   account: "My account",
+  accounts: "Accounts",
+  daybook: "Day book",
+  expenses: "Expenses",
+  income: "Other income",
+  pnl: "Profit & loss",
+  partners: "Partners",
+  "profit-distribution": "Profit distribution",
   leads: "Enquiries",
   "follow-ups": "Follow-ups",
   report: "Conversion report",
@@ -226,6 +255,8 @@ export const SEGMENT_LABELS: Record<string, string> = {
   taxRate: "GST rates",
   hsnSac: "HSN / SAC codes",
   moneyAccount: "Cash & bank accounts",
+  expenseCategory: "Expense categories",
+  incomeCategory: "Other income categories",
 };
 
 /** Path segments with no page of their own (breadcrumbs render them as text). */
@@ -235,4 +266,5 @@ export const NON_LINK_SEGMENTS = new Set([
   "/admin/inventory",
   "/admin/fees",
   "/admin/website",
+  "/admin/accounts",
 ]);

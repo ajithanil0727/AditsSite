@@ -913,7 +913,7 @@ export async function cancelInvoice(ctx: ActionContext, invoiceId: string, reaso
     if (inv.jobCardId) {
       const job = await tx.jobCard.findUnique({ where: { id: inv.jobCardId }, include: { status: true } });
       if (job?.status.systemKey === "DELIVERED")
-        throw new ActionError("The device has been delivered. Use a credit note (Accounts, Phase 5) instead.");
+        throw new ActionError("The device has been delivered. Issue a credit note from the invoice instead.");
     }
     await tx.invoice.update({
       where: { id: inv.id },

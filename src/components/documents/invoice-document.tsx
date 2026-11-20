@@ -34,6 +34,8 @@ export type InvoiceDoc = {
   grandTotal: Num;
   amountPaid: Num;
   cancelReason: string | null;
+  notes?: string | null;
+  originalInvoice?: { invoiceNo: string; invoiceDate: Date } | null;
   items: {
     id: string;
     description: string;
@@ -72,7 +74,8 @@ export function InvoiceDocument({
   terms?: string | null;
 }) {
   const seller = (inv.sellerSnapshot ?? {}) as Seller;
-  const gst = inv.kind === "TAX_INVOICE";
+  const credit = inv.kind === "CREDIT_NOTE";
+  const gst = inv.kind === "TAX_INVOICE" || (credit && !!seller.gstin);
   const device = inv.jobCard
     ? [
         inv.jobCard.device.brand?.name,
@@ -108,11 +111,19 @@ export function InvoiceDocument({
           </div>
         </div>
         <div className="text-right">
-          <div className="text-xl font-bold tracking-wide">{gst ? "TAX INVOICE" : "INVOICE"}</div>
+          <div className="text-xl font-bold tracking-wide">
+            {credit ? "CREDIT NOTE" : gst ? "TAX INVOICE" : "INVOICE"}
+          </div>
           <div className="mt-1">
             No. <span className="font-mono font-semibold">{inv.invoiceNo}</span>
           </div>
           <div>Date {formatDate(inv.invoiceDate)}</div>
+          {credit && inv.originalInvoice && (
+            <div>
+              Against invoice <span className="font-mono">{inv.originalInvoice.invoiceNo}</span> dated{" "}
+              {formatDate(inv.originalInvoice.invoiceDate)}
+            </div>
+          )}
           {gst && inv.placeOfSupply && (
             <div>
               Place of supply: {stateName(inv.placeOfSupply)} ({inv.placeOfSupply})
@@ -232,10 +243,20 @@ export function InvoiceDocument({
           )}
           <dt className="border-t pt-1 font-semibold">Total</dt>
           <dd className="border-t pt-1 text-right font-semibold tabular-nums">{formatINR(n(inv.grandTotal))}</dd>
-          <dt className="text-muted-foreground">Received</dt>
-          <dd className="text-right tabular-nums">{formatINR(n(inv.amountPaid))}</dd>
-          <dt className="font-medium">Balance</dt>
-          <dd className="text-right font-medium tabular-nums">{formatINR(due)}</dd>
+          {!credit && (
+            <>
+              <dt className="text-muted-foreground">Received</dt>
+              <dd className="text-right tabular-nums">{formatINR(n(inv.amountPaid))}</dd>
+              <dt className="font-medium">Balance</dt>
+              <dd className="text-right font-medium tabular-nums">{formatINR(due)}</dd>
+            </>
+          )}
+          {credit && inv.notes && (
+            <>
+              <dt className="text-muted-foreground">Reason</dt>
+              <dd className="text-right">{inv.notes}</dd>
+            </>
+          )}
         </dl>
       </section>
 

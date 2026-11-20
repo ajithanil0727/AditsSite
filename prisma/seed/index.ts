@@ -16,6 +16,7 @@ import { seedPhase2 } from "./phase2";
 import { seedPhase3 } from "./phase3";
 import { ADITS_COMPANY, applyBrand } from "./brand";
 import { seedPhase4 } from "./phase4";
+import { seedPhase5 } from "./phase5";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL!, max: 1 }) });
 const PASSWORD = process.env.SEED_DEFAULT_PASSWORD ?? "Demo@12345";
@@ -288,6 +289,25 @@ async function main() {
     }
   }
 
+  // One-off grants for permissions that existed before but were added to a default role later.
+  // Each runs once per database (marker setting), so later admin edits are respected.
+  const LATER_GRANTS: { key: string; role: string; permissions: string[] }[] = [
+    { key: "seed.grants.phase5", role: "Counsellor / Front Office", permissions: ["expenses.view", "expenses.create"] },
+  ];
+  for (const g of LATER_GRANTS) {
+    const done = await db.setting.findUnique({ where: { organizationId_key: { organizationId: org.id, key: g.key } } });
+    const role = await db.role.findUnique({ where: { organizationId_name: { organizationId: org.id, name: g.role } } });
+    if (done || !role) continue;
+    for (const key of g.permissions) {
+      await db.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: role.id, permissionId: permIds.get(key)! } },
+        create: { roleId: role.id, permissionId: permIds.get(key)! },
+        update: {},
+      });
+    }
+    await db.setting.create({ data: { organizationId: org.id, key: g.key, value: { done: true } } });
+  }
+
   // --- Roles (create if missing; never overwrite admin edits) ---
   const roleIds: Record<string, { id: string; scope: RoleScope }> = {};
   for (const r of DEFAULT_ROLES) {
@@ -382,6 +402,7 @@ async function main() {
   await seedPhase2(db, { orgId: org.id, branchIds, userIds });
   await seedPhase3(db, { orgId: org.id, branchIds, userIds });
   await seedPhase4(db, { orgId: org.id, branchIds, userIds });
+  await seedPhase5(db, { orgId: org.id, branchIds, userIds });
   await applyBrand(db, { orgId: org.id, branchIds, userIds });
 
   console.log(`Seeded: ${BRANCHES.length} branches, ${DEFAULT_ROLES.length} roles, ${USERS.length} users.`);

@@ -35,6 +35,12 @@ import {
   ImagesIcon,
   LayersIcon,
   GlobeIcon,
+  BookOpenTextIcon,
+  WalletIcon,
+  HandCoinsIcon,
+  TrendingUpIcon,
+  HandshakeIcon,
+  PieChartIcon,
   type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -90,6 +96,12 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   media: ImagesIcon,
   content: LayersIcon,
   globe: GlobeIcon,
+  daybook: BookOpenTextIcon,
+  expense: WalletIcon,
+  income: HandCoinsIcon,
+  pnl: TrendingUpIcon,
+  partners: HandshakeIcon,
+  distribution: PieChartIcon,
 };
 
 export function AppSidebar({

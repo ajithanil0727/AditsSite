@@ -136,6 +136,19 @@ test("intake to delivery, then the customer tracks it", async ({ page }) => {
   await expect(page.getByText("TAX INVOICE")).toBeVisible();
   await expect(page.getByText("Rupees Five Thousand Only")).toBeVisible();
 
+  // --- After delivery: a partial credit note with the money paid back ---
+  await page.getByRole("button", { name: "Credit note" }).click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByLabel(/Amount including GST/).fill("590");
+  await dialog.getByLabel("Reason").fill("Charging port replaced again free of charge");
+  await dialog.getByRole("switch", { name: /Pay the money back now/ }).click();
+  await dialog.getByRole("combobox", { name: "From account" }).click();
+  await page.getByRole("option", { name: /Cash/ }).click();
+  await dialog.getByRole("button", { name: "Issue credit note" }).click();
+  await expect(page.getByText("CREDIT NOTE", { exact: true })).toBeVisible();
+  await expect(page.getByText(/PKD\/C2627\/\d{5}/).first()).toBeVisible();
+  await expect(page.getByText(/Against invoice/)).toBeVisible();
+
   // --- Public tracker (no login needed) ---
   await page.context().clearCookies();
   await page.goto("/track");

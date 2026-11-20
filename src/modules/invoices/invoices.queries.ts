@@ -79,6 +79,12 @@ export async function getInvoice(user: CurrentUser, id: string, permission: "inv
         },
       },
       createdBy: { select: { name: true } },
+      originalInvoice: { select: { id: true, invoiceNo: true, invoiceDate: true } },
+      creditNotes: {
+        where: { status: "ISSUED" },
+        select: { id: true, invoiceNo: true, invoiceDate: true, grandTotal: true },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
   if (!inv) return null;
