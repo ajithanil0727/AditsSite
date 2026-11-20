@@ -78,6 +78,19 @@ export function SiteSettingsForm({ initial }: { initial: SiteSettingsInput }) {
 
       <Card>
         <CardHeader>
+          <CardTitle>Placement figures</CardTitle>
+          <CardDescription>
+            Students placed and the placement % (placed ÷ students who completed and want placement help), worked out
+            live from Placements. Turn on once real placements are recorded.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SwitchField control={c} name="placements.showFigures" label="Show on the Placements page" />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Social links</CardTitle>
         </CardHeader>
         <CardContent>

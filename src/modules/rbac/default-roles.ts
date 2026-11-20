@@ -73,6 +73,8 @@ export const DEFAULT_ROLES: DefaultRole[] = [
         k !== "profit.lock" &&
         k !== "partners.manage" &&
         k !== "jobcards.view_unlock_code" &&
+        k !== "certificates.issue" && // owners + branch managers only (Phase 7 decision)
+        k !== "certificates.revoke" &&
         k !== "users.manage_protected",
     ),
     discountLimitPercent: 100,

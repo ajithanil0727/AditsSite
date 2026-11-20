@@ -3,6 +3,10 @@ import { canAny, type Access } from "@/modules/rbac/access";
 
 /** Icon names are mapped to components in the (client) sidebar. */
 export type NavIcon =
+  | "certificates"
+  | "drives"
+  | "companies"
+  | "placementStats"
   | "dashboard"
   | "building"
   | "branch"
@@ -63,6 +67,7 @@ export type NavItem = {
 export type NavGroup = { label: string; items: NavItem[] };
 
 const MASTER_PERMISSIONS: PermissionKey[] = [
+  "assessments.manage",
   "masters.hr",
   "masters.service",
   "masters.inventory",
@@ -92,6 +97,20 @@ export const NAV: NavGroup[] = [
       { title: "Students", href: "/admin/students", icon: "students", permissions: ["students.view"], exact: true },
       { title: "Batches", href: "/admin/batches", icon: "batches", permissions: ["batches.view"] },
       { title: "Courses", href: "/admin/courses", icon: "courses", permissions: ["courses.view"] },
+      { title: "Certificates", href: "/admin/certificates", icon: "certificates", permissions: ["certificates.view"] },
+    ],
+  },
+  {
+    label: "Placements",
+    items: [
+      { title: "Drives", href: "/admin/placements/drives", icon: "drives", permissions: ["placements.view"] },
+      { title: "Companies", href: "/admin/placements/companies", icon: "companies", permissions: ["companies.view"] },
+      {
+        title: "Placement stats",
+        href: "/admin/placements/stats",
+        icon: "placementStats",
+        permissions: ["placements.view"],
+      },
     ],
   },
   {
@@ -157,11 +176,21 @@ export const NAV: NavGroup[] = [
     label: "HR",
     items: [
       { title: "Employees", href: "/admin/hr/employees", icon: "employees", permissions: ["employees.view"] },
-      { title: "Attendance", href: "/admin/hr/attendance", icon: "staffAttendance", permissions: ["hr_attendance.view"] },
+      {
+        title: "Attendance",
+        href: "/admin/hr/attendance",
+        icon: "staffAttendance",
+        permissions: ["hr_attendance.view"],
+      },
       { title: "Leave", href: "/admin/hr/leave", icon: "leave", permissions: ["leaves.apply", "leaves.approve"] },
       { title: "Holidays", href: "/admin/hr/holidays", icon: "holidays", permissions: ["hr_attendance.view"] },
       { title: "Payroll", href: "/admin/hr/payroll", icon: "payroll", permissions: ["payroll.view"] },
-      { title: "Incentives", href: "/admin/hr/incentives", icon: "incentives", permissions: ["incentives.manage", "incentives.approve"] },
+      {
+        title: "Incentives",
+        href: "/admin/hr/incentives",
+        icon: "incentives",
+        permissions: ["incentives.manage", "incentives.approve"],
+      },
     ],
   },
   {
@@ -287,6 +316,12 @@ export const SEGMENT_LABELS: Record<string, string> = {
   shift: "Shifts",
   leaveType: "Leave types",
   salaryComponent: "Salary components",
+  assessmentType: "Assessment types",
+  assessments: "Assessments",
+  certificates: "Certificates",
+  placements: "Placements",
+  drives: "Drives",
+  stats: "Placement stats",
 };
 
 /** Path segments with no page of their own (breadcrumbs render them as text). */
@@ -297,5 +332,7 @@ export const NON_LINK_SEGMENTS = new Set([
   "/admin/fees",
   "/admin/website",
   "/admin/accounts",
+  "/admin/placements",
+  "/admin/assessments",
   "/admin/hr",
 ]);

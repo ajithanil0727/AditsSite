@@ -47,6 +47,8 @@ import {
   CalendarHeartIcon,
   BanknoteIcon,
   AwardIcon,
+  BriefcaseBusinessIcon,
+  Building2Icon,
   type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -114,6 +116,10 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   holidays: CalendarHeartIcon,
   payroll: BanknoteIcon,
   incentives: AwardIcon,
+  certificates: BadgeCheckIcon,
+  drives: BriefcaseBusinessIcon,
+  companies: Building2Icon,
+  placementStats: ChartColumnIcon,
 };
 
 export function AppSidebar({

@@ -18,6 +18,7 @@ import { ADITS_COMPANY, applyBrand } from "./brand";
 import { seedPhase4 } from "./phase4";
 import { seedPhase5 } from "./phase5";
 import { seedPhase6 } from "./phase6";
+import { seedPhase7 } from "./phase7";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL!, max: 1 }) });
 const PASSWORD = process.env.SEED_DEFAULT_PASSWORD ?? "Demo@12345";
@@ -314,6 +315,21 @@ async function main() {
     await db.setting.create({ data: { organizationId: org.id, key: g.key, value: { done: true } } });
   }
 
+  // One-off removals when a default role loses a permission by decision (runs once per database).
+  const LATER_REVOKES: { key: string; role: string; permissions: string[] }[] = [
+    // Phase 7: certificates are issued / cancelled by owners and branch managers only.
+    { key: "seed.revokes.phase7", role: "Admin", permissions: ["certificates.issue", "certificates.revoke"] },
+  ];
+  for (const g of LATER_REVOKES) {
+    const done = await db.setting.findUnique({ where: { organizationId_key: { organizationId: org.id, key: g.key } } });
+    const role = await db.role.findUnique({ where: { organizationId_name: { organizationId: org.id, name: g.role } } });
+    if (done || !role) continue;
+    await db.rolePermission.deleteMany({
+      where: { roleId: role.id, permissionId: { in: g.permissions.map((k) => permIds.get(k)!).filter(Boolean) } },
+    });
+    await db.setting.create({ data: { organizationId: org.id, key: g.key, value: { done: true } } });
+  }
+
   // --- Roles (create if missing; never overwrite admin edits) ---
   const roleIds: Record<string, { id: string; scope: RoleScope }> = {};
   for (const r of DEFAULT_ROLES) {
@@ -410,6 +426,7 @@ async function main() {
   await seedPhase4(db, { orgId: org.id, branchIds, userIds });
   await seedPhase5(db, { orgId: org.id, branchIds, userIds });
   await seedPhase6(db, { orgId: org.id, branchIds, userIds });
+  await seedPhase7(db, { orgId: org.id, userIds });
   await applyBrand(db, { orgId: org.id, branchIds, userIds });
 
   console.log(`Seeded: ${BRANCHES.length} branches, ${DEFAULT_ROLES.length} roles, ${USERS.length} users.`);

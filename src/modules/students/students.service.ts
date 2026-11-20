@@ -14,6 +14,7 @@ import {
   type Instalment,
 } from "@/modules/fees/fee-logic";
 import { convertLeadOnCreate } from "@/modules/leads/leads.service";
+import { revalidateSite } from "@/modules/website/site.data";
 import { nextDocNumber } from "@/modules/numbering/numbering.service";
 import { can, canAccessBranch, scopeOf, type Access } from "@/modules/rbac/access";
 import { ActionError, type ActionContext } from "@/modules/rbac/action";
@@ -724,6 +725,7 @@ export async function completeEnrollment(ctx: ActionContext, enrollmentId: strin
       after: { status: "COMPLETED" },
     });
   });
+  revalidateSite(); // placement % on the website counts completed students
 }
 
 // ---------------------------------------------------------------- attendance

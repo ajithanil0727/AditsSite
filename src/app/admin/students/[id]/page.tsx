@@ -9,12 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { formatDate, formatINR } from "@/lib/format";
 import { istDateOnly } from "@/lib/fy";
+import { studentAcademics } from "@/modules/academics/academics.queries";
 import { requirePagePermission } from "@/modules/auth/current";
 import { batchOptions } from "@/modules/courses/courses.queries";
 import { paymentFormOptions } from "@/modules/inventory/inventory.queries";
 import { can, canAccessBranch } from "@/modules/rbac/access";
 import { getStudent } from "@/modules/students/students.queries";
 import { ENROLL_LABEL, ENROLL_TONE } from "../students-table";
+import { EnrollmentAcademics } from "./enrollment-academics";
 import { EnrollmentActions, StudentEditDialog } from "./student-actions";
 
 export const metadata: Metadata = { title: "Student" };
@@ -31,6 +33,7 @@ export default async function StudentPage(props: PageProps<"/admin/students/[id]
   const today = istDateOnly(new Date());
   const todayYmd = today.toISOString().slice(0, 10);
   const branchIds = [...new Set(enrollments.map((x) => x.e.branchId))];
+  const academics = await studentAcademics(user, s.id);
   const [pay, allInstituteBranches] = await Promise.all([
     paymentFormOptions(user.organizationId, branchIds),
     db.branch.findMany({
@@ -281,6 +284,19 @@ export default async function StudentPage(props: PageProps<"/admin/students/[id]
                       : "not marked yet"}
                     {e.dropReason && ` · Dropped: ${e.dropReason}`}
                   </p>
+                  {(() => {
+                    const a = academics.find((x) => x.enrollmentId === e.id);
+                    return a ? (
+                      <EnrollmentAcademics
+                        a={a}
+                        canOptOut={
+                          canAccessBranch(user.access, "placements.manage_applications", e.branchId) ||
+                          canAccessBranch(user.access, "students.update", e.branchId)
+                        }
+                        canViewCertificates={can(user.access, "certificates.view")}
+                      />
+                    ) : null;
+                  })()}
                 </CardContent>
               </Card>
             ),

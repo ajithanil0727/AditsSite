@@ -1199,29 +1199,30 @@ model Student {
 /// A student taking one course. A student can have several enrollments over time.
 /// Fee values are copied here at admission so later course price changes don't affect it.
 model Enrollment {
-  id             String           @id @default(cuid())
-  organizationId String
-  branchId       String
-  branch         Branch           @relation(fields: [branchId], references: [id])
-  studentId      String
-  student        Student          @relation(fields: [studentId], references: [id])
-  courseId       String
-  course         Course           @relation(fields: [courseId], references: [id])
-  batchId        String?
-  batch          Batch?           @relation(fields: [batchId], references: [id])
-  enrolledAt     DateTime         @db.Date
-  status         EnrollmentStatus @default(ACTIVE)
-  courseFee      Decimal          @db.Decimal(12, 2)
-  discountAmount Decimal          @default(0) @db.Decimal(12, 2) // approved discount only
-  netFee         Decimal          @db.Decimal(12, 2)
-  gstMode        GstMode
-  taxRate        Decimal          @default(0) @db.Decimal(5, 2)
-  completedAt    DateTime?
-  droppedAt      DateTime?
-  dropReason     String?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  deletedAt      DateTime?
+  id              String           @id @default(cuid())
+  organizationId  String
+  branchId        String
+  branch          Branch           @relation(fields: [branchId], references: [id])
+  studentId       String
+  student         Student          @relation(fields: [studentId], references: [id])
+  courseId        String
+  course          Course           @relation(fields: [courseId], references: [id])
+  batchId         String?
+  batch           Batch?           @relation(fields: [batchId], references: [id])
+  enrolledAt      DateTime         @db.Date
+  status          EnrollmentStatus @default(ACTIVE)
+  courseFee       Decimal          @db.Decimal(12, 2)
+  discountAmount  Decimal          @default(0) @db.Decimal(12, 2) // approved discount only
+  netFee          Decimal          @db.Decimal(12, 2)
+  gstMode         GstMode
+  taxRate         Decimal          @default(0) @db.Decimal(5, 2)
+  completedAt     DateTime?
+  droppedAt       DateTime?
+  dropReason      String?
+  placementOptOut Boolean          @default(false) // asked not to get placement help: left out of the placement %
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
 
   installments     FeeInstallment[]
   payments         FeePayment[]
@@ -1230,7 +1231,7 @@ model Enrollment {
   transfers        EnrollmentTransfer[]
   attendance       StudentAttendance[]
   results          AssessmentResult[]
-  certificate      Certificate?
+  certificates     Certificate[]
   invoices         Invoice[]
   applications     PlacementApplication[]
   lead             Lead?
@@ -1398,16 +1399,21 @@ model AssessmentType {
 }
 
 model Assessment {
-  id        String             @id @default(cuid())
-  batchId   String
-  batch     Batch              @relation(fields: [batchId], references: [id])
-  typeId    String
-  type      AssessmentType     @relation(fields: [typeId], references: [id])
-  title     String
-  date      DateTime           @db.Date
-  maxMarks  Decimal            @db.Decimal(6, 2)
-  passMarks Decimal            @db.Decimal(6, 2)
-  results   AssessmentResult[]
+  id          String             @id @default(cuid())
+  batchId     String
+  batch       Batch              @relation(fields: [batchId], references: [id])
+  typeId      String
+  type        AssessmentType     @relation(fields: [typeId], references: [id])
+  title       String
+  date        DateTime           @db.Date
+  maxMarks    Decimal            @db.Decimal(6, 2)
+  passMarks   Decimal            @db.Decimal(6, 2)
+  createdById String?
+  createdAt   DateTime           @default(now())
+  deletedAt   DateTime?
+  results     AssessmentResult[]
+
+  @@index([batchId])
 }
 
 model AssessmentResult {
@@ -1419,6 +1425,8 @@ model AssessmentResult {
   marks        Decimal?   @db.Decimal(6, 2)
   isAbsent     Boolean    @default(false)
   remarks      String?
+  enteredById  String?
+  updatedAt    DateTime   @default(now()) @updatedAt
 
   @@unique([assessmentId, enrollmentId])
 }
@@ -1428,11 +1436,13 @@ model Certificate {
   organizationId String
   branchId       String
   branch         Branch            @relation(fields: [branchId], references: [id])
-  enrollmentId   String            @unique
+  enrollmentId   String // one ISSUED certificate per enrollment (checked in the service); revoked ones stay
   enrollment     Enrollment        @relation(fields: [enrollmentId], references: [id])
   certificateNo  String
   verifyCode     String            @unique // random, used in the QR URL
   grade          String?
+  percentage     Decimal?          @db.Decimal(5, 2)
+  attendancePct  Decimal?          @db.Decimal(5, 2)
   issuedAt       DateTime          @db.Date
   issuedById     String
   issuedBy       User              @relation(fields: [issuedById], references: [id])
@@ -1442,9 +1452,12 @@ model Certificate {
   file           FileAsset?        @relation(fields: [fileId], references: [id])
   status         CertificateStatus @default(ISSUED)
   revokedReason  String?
+  revokedAt      DateTime?
+  revokedById    String?
   createdAt      DateTime          @default(now())
 
   @@unique([organizationId, certificateNo])
+  @@index([enrollmentId])
 }
 
 // =============================================================================
@@ -2217,23 +2230,23 @@ model LeaveType {
 }
 
 model LeaveRequest {
-  id           String         @id @default(cuid())
-  employeeId   String
-  employee     Employee       @relation(fields: [employeeId], references: [id])
-  leaveTypeId  String
-  leaveType    LeaveType      @relation(fields: [leaveTypeId], references: [id])
-  fromDate     DateTime       @db.Date
-  toDate       DateTime       @db.Date
-  days         Decimal        @db.Decimal(5, 1)
-  reason       String?
-  status       ApprovalStatus @default(PENDING)
-  decidedById  String?
-  decidedBy    User?          @relation(fields: [decidedById], references: [id])
-  decidedAt    DateTime?
-  decisionNote String?
+  id            String         @id @default(cuid())
+  employeeId    String
+  employee      Employee       @relation(fields: [employeeId], references: [id])
+  leaveTypeId   String
+  leaveType     LeaveType      @relation(fields: [leaveTypeId], references: [id])
+  fromDate      DateTime       @db.Date
+  toDate        DateTime       @db.Date
+  days          Decimal        @db.Decimal(5, 1)
+  reason        String?
+  status        ApprovalStatus @default(PENDING)
+  decidedById   String?
+  decidedBy     User?          @relation(fields: [decidedById], references: [id])
+  decidedAt     DateTime?
+  decisionNote  String?
   /// Who entered it (the employee, or HR on their behalf). Nobody approves their own request.
   requestedById String?
-  createdAt    DateTime       @default(now())
+  createdAt     DateTime       @default(now())
 
   @@index([employeeId, status])
 }
@@ -2697,7 +2710,9 @@ model PlacementDrive {
   driveDate       DateTime?
   lastDateToApply DateTime?   @db.Date
   status          DriveStatus @default(OPEN)
+  createdById     String?
   createdAt       DateTime    @default(now())
+  deletedAt       DateTime?
 
   courses      PlacementDriveCourse[]
   applications PlacementApplication[]
@@ -2721,7 +2736,9 @@ model PlacementApplication {
   enrollmentId String?
   enrollment   Enrollment?       @relation(fields: [enrollmentId], references: [id])
   status       ApplicationStatus @default(APPLIED)
+  notes        String?
   appliedAt    DateTime          @default(now())
+  updatedAt    DateTime          @default(now()) @updatedAt
 
   rounds InterviewRound[]
   offer  PlacementOffer?

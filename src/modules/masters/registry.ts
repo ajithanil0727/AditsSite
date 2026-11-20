@@ -38,7 +38,7 @@ export type MasterDef = {
   kind: MasterKind;
   label: string;
   singular: string;
-  group: "Enquiries" | "Service" | "Inventory" | "Accounts" | "Purchase" | "HR";
+  group: "Enquiries" | "Institute" | "Service" | "Inventory" | "Accounts" | "Purchase" | "HR";
   description: string;
   permission: PermissionKey;
   fields: MasterField[];
@@ -70,6 +70,7 @@ export const MASTER_KINDS = [
   "shift",
   "leaveType",
   "salaryComponent",
+  "assessmentType",
 ] as const;
 export type MasterKind = (typeof MASTER_KINDS)[number];
 
@@ -404,6 +405,16 @@ export const MASTERS: Record<MasterKind, MasterDef> = {
       active,
     ],
     columns: ["name", "annualQuota", "isPaid", "isActive"],
+  },
+  assessmentType: {
+    kind: "assessmentType",
+    label: "Assessment types",
+    singular: "assessment type",
+    group: "Institute",
+    permission: "assessments.manage",
+    description: "Theory, Practical, Project… Every assessment in a batch has a type.",
+    fields: [{ name: "name", label: "Name", type: "text", required: true, max: 60 }, active],
+    columns: ["name", "isActive"],
   },
   salaryComponent: {
     kind: "salaryComponent",

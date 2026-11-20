@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/format";
 import { istDateOnly } from "@/lib/fy";
+import { assessmentTypeOptions, batchAssessments } from "@/modules/academics/academics.queries";
 import { requirePagePermission } from "@/modules/auth/current";
 import { BATCH_STATUS_LABELS } from "@/modules/courses/courses.schemas";
 import { courseOptions, getBatch, trainerOptions } from "@/modules/courses/courses.queries";
@@ -15,6 +16,7 @@ import { attendancePercent } from "@/modules/fees/fee-logic";
 import { canAccessBranch, scopeOf } from "@/modules/rbac/access";
 import { BatchFormDialog } from "../batch-form";
 import { AttendanceSheet } from "./attendance-sheet";
+import { AssessmentDialog, BatchAssessments } from "./batch-assessments";
 
 export const metadata: Metadata = { title: "Batch" };
 
@@ -34,6 +36,14 @@ export default async function BatchPage(props: PageProps<"/admin/batches/[id]">)
     canAccessBranch(user.access, "student_attendance.mark", b.branchId) &&
     (scopeOf(user.access, "student_attendance.mark") !== "OWN" || b.trainerId === user.id);
   const active = b.enrollments.filter((e) => e.status === "ACTIVE" || e.status === "ON_HOLD");
+  const ownOk = (p: "assessments.view" | "assessments.manage") =>
+    canAccessBranch(user.access, p, b.branchId) && (scopeOf(user.access, p) !== "OWN" || b.trainerId === user.id);
+  const canSeeAssessments = ownOk("assessments.view");
+  const canManageAssessments = ownOk("assessments.manage");
+  const [assessments, types] = await Promise.all([
+    canSeeAssessments ? batchAssessments(b.id) : Promise.resolve([]),
+    canManageAssessments ? assessmentTypeOptions(user.organizationId) : Promise.resolve([]),
+  ]);
   const [courses, trainers] = canEdit
     ? await Promise.all([courseOptions(user.organizationId), trainerOptions(user.organizationId, [b.branchId])])
     : [[], []];
@@ -137,6 +147,19 @@ export default async function BatchPage(props: PageProps<"/admin/batches/[id]">)
               </ul>
             </CardContent>
           </Card>
+          {canSeeAssessments && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2">
+                <CardTitle>Assessments</CardTitle>
+                {canManageAssessments && types.length > 0 && (
+                  <AssessmentDialog batchId={b.id} types={types} today={today} />
+                )}
+              </CardHeader>
+              <CardContent>
+                <BatchAssessments rows={assessments} students={active.length} />
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader>
               <CardTitle>Recent sessions</CardTitle>

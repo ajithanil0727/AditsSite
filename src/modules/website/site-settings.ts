@@ -43,6 +43,8 @@ export const siteSettingsSchema = z.object({
     x: url,
   }),
   header: z.object({ ctaLabel: text(30), ctaHref: href }),
+  // Live placement figures (placed students, placement %) on the Placements page. Off until the data is real.
+  placements: z.object({ showFigures: z.boolean().default(false) }),
   footer: z.object({ about: text(400), copyright: text(120) }),
   seo: z.object({
     defaultTitle: text(70),
@@ -64,6 +66,7 @@ export const DEFAULT_SITE: SiteSettings = {
   whatsapp: { enabled: true, number: "", message: "Hi, I'd like to know more." },
   social: { facebook: "", instagram: "", youtube: "", linkedin: "", x: "" },
   header: { ctaLabel: "Enquire now", ctaHref: "/enquire" },
+  placements: { showFigures: false },
   footer: { about: "", copyright: "" },
   seo: { defaultTitle: "", titleSuffix: "", description: "", keywords: "", ogImageId: null },
 };

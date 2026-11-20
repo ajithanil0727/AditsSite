@@ -2,6 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
 import type { PageKind } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
+import { placementStat } from "@/modules/academics/academic-logic";
 import { getCompanyProfile, getDefaultOrganizationId } from "@/modules/settings/settings.service";
 import { imageIdsIn } from "./fields";
 import { readSection, SECTIONS, isSectionType } from "./sections";
@@ -14,7 +15,12 @@ import { readSiteSettings, SITE_KEY } from "./site-settings";
 export const SITE_TAG = "site";
 
 export function revalidateSite() {
-  updateTag(SITE_TAG);
+  try {
+    updateTag(SITE_TAG);
+  } catch (e) {
+    // Outside a server action (tests, seed scripts) there is no cache to refresh.
+    if (!(e instanceof Error) || !e.message.includes("within a Server Action")) throw e;
+  }
 }
 
 export type Img = { url: string; alt: string; width: number | null; height: number | null };
@@ -354,4 +360,36 @@ export async function getBookingOptions() {
     select: { id: true, name: true },
   });
   return { deviceTypes: deviceTypes.map((d) => ({ value: d.id, label: d.name })) };
+}
+
+/** Live placement figures for the Placements page, only when switched on in Site settings. */
+export async function getPlacementFigures() {
+  "use cache";
+  cacheTag(SITE_TAG);
+  cacheLife("hours");
+  const orgId = await getDefaultOrganizationId();
+  if (!orgId) return null;
+  const setting = await db.setting.findUnique({
+    where: { organizationId_key: { organizationId: orgId, key: SITE_KEY } },
+  });
+  if (!readSiteSettings(setting?.value).placements.showFigures) return null;
+  const rows = await db.enrollment.findMany({
+    where: { organizationId: orgId, deletedAt: null },
+    select: {
+      status: true,
+      placementOptOut: true,
+      applications: { where: { offer: { joiningStatus: { not: "DECLINED" } } }, select: { id: true } },
+    },
+  });
+  const stat = placementStat(
+    rows.map((r) => ({ status: r.status, placementOptOut: r.placementOptOut, placed: r.applications.length > 0 })),
+  );
+  const hiring = await db.company.count({
+    where: {
+      organizationId: orgId,
+      deletedAt: null,
+      drives: { some: { applications: { some: { offer: { joiningStatus: { not: "DECLINED" } } } } } },
+    },
+  });
+  return stat.placed > 0 ? { ...stat, hiring } : null;
 }
