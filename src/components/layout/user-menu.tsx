@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOutIcon } from "lucide-react";
+import { LogOutIcon, UserCogIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,11 @@ export function UserMenu({ name, email }: { name: string; email: string }) {
           <div className="truncate text-xs text-muted-foreground">{email}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/admin/account">
+            <UserCogIcon /> My account
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={async () => {
             await authClient.signOut();

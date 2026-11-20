@@ -193,6 +193,7 @@ export const SEGMENT_LABELS: Record<string, string> = {
   payments: "Receipts",
   approvals: "Approvals",
   new: "New",
+  account: "My account",
   leads: "Enquiries",
   "follow-ups": "Follow-ups",
   report: "Conversion report",

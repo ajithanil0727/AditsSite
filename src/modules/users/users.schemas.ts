@@ -48,4 +48,22 @@ export const userSchema = z
 export type UserInput = z.input<typeof userSchema>;
 export type UserData = z.output<typeof userSchema>;
 
+export const changeOwnPasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Enter your current password").max(128),
+    newPassword: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.newPassword !== v.confirmPassword)
+      ctx.addIssue({ code: "custom", path: ["confirmPassword"], message: "The passwords don't match" });
+    if (v.currentPassword && v.newPassword === v.currentPassword)
+      ctx.addIssue({
+        code: "custom",
+        path: ["newPassword"],
+        message: "Choose a password different from the current one",
+      });
+  });
+export type ChangeOwnPasswordInput = z.input<typeof changeOwnPasswordSchema>;
+
 export const resetPasswordSchema = z.object({ id: z.string().min(1), password: passwordSchema });

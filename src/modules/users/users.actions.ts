@@ -3,8 +3,10 @@
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { defineAction } from "@/modules/rbac/action";
-import { resetPasswordSchema, userSchema } from "./users.schemas";
-import { resetUserPassword, saveUser, setUserDeleted } from "./users.service";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
+import { changeOwnPasswordSchema, resetPasswordSchema, userSchema } from "./users.schemas";
+import { changeOwnPassword, resetUserPassword, saveUser, setUserDeleted } from "./users.service";
 
 export const saveUserAction = defineAction(
   { permission: (i) => (i.id ? "users.update" : "users.create"), schema: userSchema },
@@ -31,3 +33,12 @@ export const restoreUserAction = defineAction({ permission: "users.delete", sche
   await setUserDeleted(ctx, id, false);
   refresh();
 });
+
+/** Any signed-in user: change your own password (needs the current one). */
+export const changeOwnPasswordAction = defineAction(
+  { permission: null, schema: changeOwnPasswordSchema },
+  async (input, ctx) => {
+    const session = await auth.api.getSession({ headers: await headers() });
+    await changeOwnPassword(ctx, input, session?.session.id ?? null);
+  },
+);

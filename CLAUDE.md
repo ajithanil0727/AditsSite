@@ -54,6 +54,7 @@ Read `node_modules/next/dist/docs/` before using a Next API you haven't used her
 - Stock: weighted average cost per branch. Payroll: simple (no PF/ESI/PT/TDS).
 - Role scope: union of roles; the widest scope per permission wins. OWN = assigned branches + own records.
 - **Role hierarchy (2026-11-20)**: **Super Admin** (the system/website handler) has every permission, including `users.manage_protected`. **Owner / Partner** has everything else (website included) and runs the business. **Admin** is staff-level under the owners. Super Admin and Owner are **protected roles** (`Role.isProtected`): only someone with `users.manage_protected` can give or remove them, edit them, or edit/reset/deactivate/delete an account holding one (people can still edit their own details). So only the super admin adds owners, and owners can't touch the super admin. Rule in `rbac/escalation.ts` (`protectedRoleChangeProblem`, `canManageProtected`), enforced in `users.service.ts` / `roles.service.ts`. Known gap, accepted: an owner can still build a custom (unprotected) role from their own permissions.
+- **My account** (`/admin/account`, every signed-in user): own details + change password (needs the current one; other sessions are signed out, this one stays; failures audited). Admins still reset passwords for others.
 - **Partner shares are optional**: an owner needs no share; Phase 5 profit reports must work when a branch has no shares set (show the profit, skip the distribution).
 
 ### Phase 2 decisions (service + inventory)

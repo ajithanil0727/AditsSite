@@ -59,3 +59,38 @@ test("owners can't touch the super admin or other owners; the super admin can", 
   await expect(row.getByText("Protected")).toHaveCount(0);
   await expect(row.getByRole("button", { name: /Actions for Bindu Menon/ })).toBeVisible();
 });
+
+test("anyone can change their own password from My account", async ({ page }) => {
+  const email = "placement@demo.test";
+  const next = "Changed@2026x";
+  const change = async (current: string, newPassword: string) => {
+    await page.goto("/admin/account");
+    await page.getByLabel("Current password", { exact: true }).fill(current);
+    await page.getByLabel("New password", { exact: true }).fill(newPassword);
+    await page.getByLabel("Repeat new password").fill(newPassword);
+    await page.getByRole("button", { name: "Change password" }).click();
+  };
+
+  await signIn(page, email);
+  await expect(page.getByRole("heading", { name: /Welcome/ })).toBeVisible();
+  await page.getByRole("button", { name: "Account menu" }).click();
+  await page.getByRole("menuitem", { name: "My account" }).click();
+  await expect(page.getByRole("heading", { name: "My account" })).toBeVisible();
+
+  await change("not-my-password1", next);
+  await expect(page.getByText("Your current password is not correct.")).toBeVisible();
+
+  await change(PASSWORD, next);
+  await expect(page.getByText("Password changed")).toBeVisible();
+
+  // The new password works, the old one doesn't.
+  await page.context().clearCookies();
+  await signIn(page, email, PASSWORD);
+  await expect(page.getByText(/Incorrect email or password/)).toBeVisible();
+  await signIn(page, email, next);
+  await expect(page.getByRole("heading", { name: /Welcome/ })).toBeVisible();
+
+  // Put the demo password back for the other tests.
+  await change(next, PASSWORD);
+  await expect(page.getByText("Password changed")).toBeVisible();
+});

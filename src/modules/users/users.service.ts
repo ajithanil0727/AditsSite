@@ -1,7 +1,7 @@
 import "server-only";
 import { db, type Tx } from "@/lib/db";
 import { writeAudit } from "@/modules/audit/audit.service";
-import { hashPassword } from "@/modules/auth/password";
+import { hashPassword, verifyPassword } from "@/modules/auth/password";
 import { canAccessBranch } from "@/modules/rbac/access";
 import { ActionError, type ActionContext } from "@/modules/rbac/action";
 import {
@@ -193,6 +193,43 @@ export async function setUserDeleted(ctx: ActionContext, id: string, deleted: bo
       entityId: id,
       before,
       after: await snapshot(tx, id),
+    });
+  });
+}
+
+/**
+ * A signed-in user changes their own password: the current one must be right. Their other sessions
+ * (other devices) are signed out; this one stays signed in.
+ */
+export async function changeOwnPassword(
+  ctx: ActionContext,
+  input: { currentPassword: string; newPassword: string },
+  currentSessionId: string | null,
+) {
+  const account = await db.account.findFirst({ where: { userId: ctx.user.id, providerId: "credential" } });
+  const ok = account?.password
+    ? await verifyPassword({ hash: account.password, password: input.currentPassword })
+    : false;
+  if (!account || !ok) {
+    await writeAudit(db, ctx.actor, {
+      action: "UPDATE",
+      entityType: "User",
+      entityId: ctx.user.id,
+      after: { passwordChange: "failed: wrong current password" },
+    });
+    throw new ActionError("Your current password is not correct.");
+  }
+  await db.$transaction(async (tx) => {
+    await tx.account.update({ where: { id: account.id }, data: { password: await hashPassword(input.newPassword) } });
+    await tx.session.deleteMany({
+      where: { userId: ctx.user.id, ...(currentSessionId ? { id: { not: currentSessionId } } : {}) },
+    });
+    await writeAudit(tx, ctx.actor, {
+      action: "UPDATE",
+      entityType: "User",
+      entityId: ctx.user.id,
+      before: { password: "old" },
+      after: { password: "changed by the user" },
     });
   });
 }
