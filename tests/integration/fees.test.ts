@@ -48,7 +48,7 @@ async function ctxFor(email: string): Promise<ActionContext> {
 
 let owner: ActionContext;
 let counsellor: ActionContext;
-let ids: { koc: string; tvm: string; course: string; cash: string; mode: string; tvmCash: string };
+let ids: { pkd: string; mkm: string; course: string; cash: string; mode: string; mkmCash: string };
 const phone = `8${String(Date.now()).slice(-9)}`;
 const today = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
 const created: string[] = [];
@@ -56,16 +56,16 @@ const created: string[] = [];
 describe.skipIf(!hasDb)("fees", () => {
   beforeAll(async () => {
     owner = await ctxFor("arun@demo.test");
-    counsellor = await ctxFor("frontdesk.koc@demo.test");
-    const [koc, tvm] = await Promise.all([
-      db.branch.findFirstOrThrow({ where: { code: "KOC" } }),
-      db.branch.findFirstOrThrow({ where: { code: "TVM" } }),
+    counsellor = await ctxFor("frontdesk.pkd@demo.test");
+    const [pkd, mkm] = await Promise.all([
+      db.branch.findFirstOrThrow({ where: { code: "PKD" } }),
+      db.branch.findFirstOrThrow({ where: { code: "MKM" } }),
     ]);
-    const course = await db.course.findFirstOrThrow({ where: { code: "MOB-ADV" } });
-    const cash = await db.moneyAccount.findFirstOrThrow({ where: { branchId: koc.id, type: "CASH" } });
-    const tvmCash = await db.moneyAccount.findFirstOrThrow({ where: { branchId: tvm.id, type: "CASH" } });
+    const course = await db.course.findFirstOrThrow({ where: { code: "SPE" } });
+    const cash = await db.moneyAccount.findFirstOrThrow({ where: { branchId: pkd.id, type: "CASH" } });
+    const mkmCash = await db.moneyAccount.findFirstOrThrow({ where: { branchId: mkm.id, type: "CASH" } });
     const mode = await db.paymentMode.findFirstOrThrow({ where: { name: "Cash" } });
-    ids = { koc: koc.id, tvm: tvm.id, course: course.id, cash: cash.id, mode: mode.id, tvmCash: tvmCash.id };
+    ids = { pkd: pkd.id, mkm: mkm.id, course: course.id, cash: cash.id, mode: mode.id, mkmCash: mkmCash.id };
   });
 
   afterAll(async () => {
@@ -90,7 +90,7 @@ describe.skipIf(!hasDb)("fees", () => {
   });
 
   const admission = (over: Record<string, unknown> = {}) => ({
-    branchId: ids.koc,
+    branchId: ids.pkd,
     studentId: null,
     student: {
       name: "Fee Test Student",
@@ -113,9 +113,9 @@ describe.skipIf(!hasDb)("fees", () => {
     discountAmount: null,
     discountReason: null,
     schedule: [
-      { label: "At admission", amount: 14000, dueDate: today },
-      { label: "Instalment 2", amount: 10500, dueDate: today },
-      { label: "Instalment 3", amount: 10500, dueDate: today },
+      { label: "At admission", amount: 36000, dueDate: today },
+      { label: "Instalment 2", amount: 27000, dueDate: today },
+      { label: "Instalment 3", amount: 27000, dueDate: today },
     ],
     payment: { amount: 10000, paymentModeId: ids.mode, moneyAccountId: ids.cash, reference: null },
     ...over,
@@ -131,8 +131,8 @@ describe.skipIf(!hasDb)("fees", () => {
         discountReason: "Early bird",
         schedule: [
           { label: "At admission", amount: 13000, dueDate: today },
-          { label: "Instalment 2", amount: 10000, dueDate: today },
-          { label: "Instalment 3", amount: 10000, dueDate: today },
+          { label: "Instalment 2", amount: 37500, dueDate: today },
+          { label: "Instalment 3", amount: 37500, dueDate: today },
         ],
       }) as never,
     );
@@ -143,7 +143,7 @@ describe.skipIf(!hasDb)("fees", () => {
       where: { id: enrollmentId },
       include: { installments: { orderBy: { sequence: "asc" } } },
     });
-    expect(Number(e.netFee)).toBe(33000);
+    expect(Number(e.netFee)).toBe(88000);
     expect(e.installments.map((i) => [Number(i.paidAmount), i.status])).toEqual([
       [10000, "PARTIAL"],
       [0, "DUE"],
@@ -182,14 +182,14 @@ describe.skipIf(!hasDb)("fees", () => {
     await expect(
       collectFee(owner, {
         enrollmentId,
-        amount: 15001,
+        amount: 70001,
         paymentModeId: ids.mode,
         moneyAccountId: ids.cash,
         reference: null,
         paidAt: today,
         notes: null,
       }),
-    ).rejects.toThrow(/Only ₹15000.00 is due/);
+    ).rejects.toThrow(/Only ₹70000.00 is due/);
   });
 
   it("cancelling a receipt makes the instalments due again", async () => {
@@ -218,8 +218,8 @@ describe.skipIf(!hasDb)("fees", () => {
       where: { id: enrollmentId },
       include: { installments: { orderBy: { sequence: "asc" } } },
     });
-    expect(Number(e.netFee)).toBe(32000);
-    expect(Number(e.installments[2].amount)).toBe(9000); // the last instalment is reduced
+    expect(Number(e.netFee)).toBe(87000);
+    expect(Number(e.installments[2].amount)).toBe(36500); // the last instalment is reduced
   });
 
   it("refunds can't exceed what was received and need someone else's approval", async () => {
@@ -236,19 +236,19 @@ describe.skipIf(!hasDb)("fees", () => {
   });
 
   it("transfer moves future dues to the new branch; dropping out waives what's unpaid", async () => {
-    await transferEnrollment(owner, { enrollmentId, toBranchId: ids.tvm, toBatchId: null, reason: "Moved city" });
+    await transferEnrollment(owner, { enrollmentId, toBranchId: ids.mkm, toBatchId: null, reason: "Moved city" });
     const pay = await collectFee(owner, {
       enrollmentId,
       amount: 1000,
       paymentModeId: ids.mode,
-      moneyAccountId: ids.tvmCash,
+      moneyAccountId: ids.mkmCash,
       reference: null,
       paidAt: today,
       notes: null,
     });
     const p = await db.feePayment.findUniqueOrThrow({ where: { id: pay.id } });
-    expect(p.branchId).toBe(ids.tvm);
-    expect(p.receiptNo).toMatch(/^TVM\//);
+    expect(p.branchId).toBe(ids.mkm);
+    expect(p.receiptNo).toMatch(/^MKM\//);
 
     await dropEnrollment(owner, { enrollmentId, reason: "Personal reasons" });
     const e = await db.enrollment.findUniqueOrThrow({ where: { id: enrollmentId }, include: { installments: true } });
@@ -259,7 +259,7 @@ describe.skipIf(!hasDb)("fees", () => {
         enrollmentId,
         amount: 100,
         paymentModeId: ids.mode,
-        moneyAccountId: ids.tvmCash,
+        moneyAccountId: ids.mkmCash,
         reference: null,
         paidAt: today,
         notes: null,

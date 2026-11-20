@@ -42,20 +42,20 @@ async function ctxFor(email: string): Promise<ActionContext> {
 describe.skipIf(!hasDb)("enquiries", () => {
   let owner: ActionContext;
   let counsellorId: string;
-  let ids: { org: string; koc: string; website: string; course: string };
+  let ids: { org: string; pkd: string; website: string; course: string };
   let courseLeadId = "";
   let serviceLeadId = "";
   let studentId = "";
 
   beforeAll(async () => {
     owner = await ctxFor("arun@demo.test");
-    counsellorId = (await db.user.findUniqueOrThrow({ where: { email: "frontdesk.koc@demo.test" } })).id;
-    const koc = await db.branch.findFirstOrThrow({ where: { code: "KOC" } });
+    counsellorId = (await db.user.findUniqueOrThrow({ where: { email: "frontdesk.pkd@demo.test" } })).id;
+    const pkd = await db.branch.findFirstOrThrow({ where: { code: "PKD" } });
     const website = await db.leadSource.findFirstOrThrow({
-      where: { organizationId: koc.organizationId, isSystem: true },
+      where: { organizationId: pkd.organizationId, isSystem: true },
     });
-    const course = await db.course.findFirstOrThrow({ where: { code: "MOB-ADV" } });
-    ids = { org: koc.organizationId, koc: koc.id, website: website.id, course: course.id };
+    const course = await db.course.findFirstOrThrow({ where: { code: "SPE" } });
+    ids = { org: pkd.organizationId, pkd: pkd.id, website: website.id, course: course.id };
   });
 
   afterAll(async () => {
@@ -75,7 +75,7 @@ describe.skipIf(!hasDb)("enquiries", () => {
       receiveLead(
         tx,
         { organizationId: ids.org, userId: null },
-        { type, branchId: ids.koc, sourceId: ids.website, name: "Lead Test", phone, ...extra },
+        { type, branchId: ids.pkd, sourceId: ids.website, name: "Lead Test", phone, ...extra },
         { createdByUserId: null, channel: "website" },
       ),
     );
@@ -85,7 +85,7 @@ describe.skipIf(!hasDb)("enquiries", () => {
     expect(r.merged).toBe(false);
     courseLeadId = r.id;
     const lead = await db.lead.findUniqueOrThrow({ where: { id: r.id }, include: { status: true } });
-    // Kochi's only user with "Receive new leads" at branch level (the manager and owners aren't in the rotation).
+    // Palakkad's only user with "Receive new leads" at branch level (the manager and owners aren't in the rotation).
     expect(lead.assignedToId).toBe(counsellorId);
     expect(lead.status.isDefault).toBe(true);
     expect(await db.notification.count({ where: { userId: counsellorId, link: `/admin/leads/${r.id}` } })).toBe(1);
@@ -107,7 +107,7 @@ describe.skipIf(!hasDb)("enquiries", () => {
 
   it("marks the course lead won when that phone is admitted", async () => {
     const r = await admit(owner, {
-      branchId: ids.koc,
+      branchId: ids.pkd,
       studentId: null,
       leadId: null,
       student: {
@@ -130,7 +130,7 @@ describe.skipIf(!hasDb)("enquiries", () => {
       enrolledAt: today,
       discountAmount: null,
       discountReason: null,
-      schedule: [{ label: "Full fee", amount: 35000, dueDate: today }],
+      schedule: [{ label: "Full fee", amount: 90000, dueDate: today }],
       payment: { amount: null, paymentModeId: null, moneyAccountId: null, reference: null },
     });
     studentId = r.studentId;

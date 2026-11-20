@@ -19,10 +19,10 @@ const ASSETS = path.join(__dirname, "assets", "adits");
 
 export const ADITS_COMPANY = {
   name: "ADITS",
-  legalName: "ADITS Innovative",
+  legalName: "ADITS Innovative LLP",
   tagline: "Chip-level smartphone and laptop engineering training in Kerala.",
-  phone: "9061347096",
-  email: undefined,
+  phone: "7356504329",
+  email: "aditstechicalsolution@gmail.com",
   website: undefined,
   addressLine1: "2nd Floor, AR Complex, Opp. Priyadarshini Theatre",
   addressLine2: undefined,
@@ -137,13 +137,13 @@ export async function applyBrand(db: PrismaClient, ctx: Ctx) {
         ...DEFAULT_SITE,
         contact: {
           ...DEFAULT_SITE.contact,
-          phone: "9061347096",
+          phone: "7356504329",
           hours: "",
           mapUrl: "https://maps.google.com/?q=Adits+innovative+Palakkad",
         },
         whatsapp: {
           enabled: true,
-          number: "9061347096",
+          number: "7356504329",
           message: "Hi there! I am interested in your courses. Can you tell me more?",
         },
         header: { ctaLabel: "Contact us", ctaHref: "/contact" },
@@ -177,7 +177,7 @@ export async function applyBrand(db: PrismaClient, ctx: Ctx) {
         headline: "Become a smartphone and laptop chip-level engineer.",
         highlight: "chip-level engineer",
         subtext:
-          "Hands-on training in a hi-tech lab with experienced faculty, on-the-job training and placement assistance after the course.",
+          "Hands-on training in a hi-tech lab with experienced faculty, on-the-job training and 100% placement assistance.",
         primary: { label: "Enquire about a course", href: "/enquire" },
         secondary: { label: "Visit our centres", href: "/branches" },
         image: null,
@@ -206,8 +206,8 @@ export async function applyBrand(db: PrismaClient, ctx: Ctx) {
           {
             icon: "briefcase",
             tone: "peach",
-            title: "Placement assistance",
-            text: "Job placement assistance after you complete the course.",
+            title: "100% placement assistance",
+            text: "Every student gets job placement assistance after completing the course.",
             link: { label: "", href: "" },
           },
           {
@@ -260,9 +260,9 @@ export async function applyBrand(db: PrismaClient, ctx: Ctx) {
       type: "cta",
       content: {
         headline: "Start your career in mobile technology",
-        text: "Call or WhatsApp us on +91 90613 47096, or send an enquiry.",
+        text: "Call or WhatsApp us on +91 73565 04329, or send an enquiry.",
         primary: { label: "Enquire about a course", href: "/enquire" },
-        secondary: { label: "WhatsApp us", href: "https://wa.me/919061347096" },
+        secondary: { label: "WhatsApp us", href: "https://wa.me/917356504329" },
         tone: "peach",
       },
     },
@@ -300,7 +300,7 @@ export async function applyBrand(db: PrismaClient, ctx: Ctx) {
       content: {
         ...SECTIONS.cta.defaults,
         headline: "Want to know more?",
-        text: "Call or WhatsApp us on +91 90613 47096.",
+        text: "Call or WhatsApp us on +91 73565 04329.",
         tone: "peach",
       },
     },
@@ -326,9 +326,9 @@ export async function applyBrand(db: PrismaClient, ctx: Ctx) {
 
   // --- Course images ---
   for (const [code, file] of [
-    ["MOB-ADV", "card1.webp"],
-    ["LAP-CHIP", "card2.webp"],
-    ["MOB-BASIC", "card3.webp"],
+    ["SPE", "card1.webp"],
+    ["LCE", "card2.webp"],
+    ["SPL", "card3.webp"],
   ] as const) {
     await db.course.updateMany({ where: { organizationId: orgId, code, imageId: null }, data: { imageId: ids[file] } });
   }

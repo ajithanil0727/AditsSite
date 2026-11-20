@@ -32,45 +32,26 @@ const BRANCHES: {
   pincode: string;
   phone: string;
 }[] = [
+  // Real ADITS branches (setup questionnaire, 2026-11-20). Palakkad is the main office; no separate head office.
   {
-    code: "HO",
-    name: "Head Office",
-    kind: "HEAD_OFFICE",
-    registered: true,
-    addressLine1: "2nd Floor, Lulu Square, MG Road",
-    city: "Kochi",
-    pincode: "682016",
-    phone: "9847012345",
-  },
-  {
-    code: "KOC",
-    name: "Kochi",
+    code: "PKD",
+    name: "Palakkad",
     kind: "BOTH",
     registered: true,
-    addressLine1: "Near Edappally Toll, NH 66",
-    city: "Kochi",
-    pincode: "682024",
-    phone: "9847012346",
+    addressLine1: "2nd Floor, AR Complex, Opp. Priyadarshini Theatre",
+    city: "Palakkad",
+    pincode: "678001",
+    phone: "7356504329",
   },
   {
-    code: "TVM",
-    name: "Thiruvananthapuram",
+    code: "MKM",
+    name: "Mukkam",
     kind: "BOTH",
-    registered: true,
-    addressLine1: "Statue Junction, MG Road",
-    city: "Thiruvananthapuram",
-    pincode: "695001",
-    phone: "9847012347",
-  },
-  {
-    code: "CLT",
-    name: "Kozhikode",
-    kind: "SERVICE",
-    registered: false,
-    addressLine1: "Mavoor Road, near KSRTC stand",
-    city: "Kozhikode",
-    pincode: "673004",
-    phone: "9847012348",
+    registered: false, // no GSTIN given: non-GST invoices (see CLAUDE.md open points)
+    addressLine1: "Near Bharat Petrol Pump, Karassery",
+    city: "Mukkam",
+    pincode: "673602",
+    phone: "9567174329",
   },
 ];
 
@@ -86,115 +67,117 @@ const USERS: {
     name: "Arun Kumar",
     phone: "9895000001",
     roles: [{ role: "Owner / Partner" }],
-    branches: ["HO", "KOC", "TVM", "CLT"],
+    branches: ["PKD", "MKM"],
   },
   {
     email: "bindu@demo.test",
     name: "Bindu Menon",
     phone: "9895000002",
     roles: [{ role: "Owner / Partner" }],
-    branches: ["HO", "KOC", "TVM"],
+    branches: ["PKD", "MKM"],
   },
   {
     email: "faisal@demo.test",
     name: "Faisal Rahman",
     phone: "9895000003",
     roles: [{ role: "Owner / Partner" }],
-    branches: ["HO", "TVM", "CLT"],
+    branches: ["MKM"],
   },
   {
     email: "admin@demo.test",
     name: "System Admin",
     phone: "9895000004",
     roles: [{ role: "Admin" }],
-    branches: ["HO", "KOC", "TVM", "CLT"],
+    branches: ["PKD", "MKM"],
   },
   {
-    email: "manager.koc@demo.test",
+    email: "manager.pkd@demo.test",
     name: "Deepa Nair",
     phone: "9895000005",
     roles: [{ role: "Branch Manager" }],
-    branches: ["KOC"],
+    branches: ["PKD"],
   },
   {
-    email: "manager.tvm@demo.test",
+    email: "manager.mkm@demo.test",
     name: "Rahul Pillai",
     phone: "9895000006",
     roles: [{ role: "Branch Manager" }],
-    branches: ["TVM"],
+    branches: ["MKM"],
   },
   {
     email: "accounts@demo.test",
     name: "Shalini Varghese",
     phone: "9895000007",
     roles: [{ role: "Accountant" }],
-    branches: ["HO", "KOC", "TVM", "CLT"],
+    branches: ["PKD", "MKM"],
   },
   {
     email: "hr@demo.test",
     name: "Meera Joseph",
     phone: "9895000008",
     roles: [{ role: "HR" }],
-    branches: ["HO", "KOC", "TVM", "CLT"],
+    branches: ["PKD", "MKM"],
   },
   {
-    email: "frontdesk.koc@demo.test",
+    email: "frontdesk.pkd@demo.test",
     name: "Anjali Das",
     phone: "9895000009",
     roles: [{ role: "Counsellor / Front Office" }],
-    branches: ["KOC"],
+    branches: ["PKD"],
   },
   {
-    email: "trainer.koc@demo.test",
+    email: "trainer.pkd@demo.test",
     name: "Vishnu Prasad",
     phone: "9895000010",
     roles: [{ role: "Trainer" }],
-    branches: ["KOC"],
+    branches: ["PKD"],
   },
   {
     email: "placement@demo.test",
     name: "Nisha Thomas",
     phone: "9895000011",
     roles: [{ role: "Placement Officer" }],
-    branches: ["KOC", "TVM"],
+    branches: ["PKD", "MKM"],
   },
   {
-    email: "service.koc@demo.test",
+    email: "service.pkd@demo.test",
     name: "Jithin George",
     phone: "9895000012",
     roles: [{ role: "Service Manager" }],
-    branches: ["KOC"],
+    branches: ["PKD"],
   },
   {
-    email: "engineer.koc@demo.test",
+    email: "engineer.pkd@demo.test",
     name: "Akhil Raj",
     phone: "9895000013",
     roles: [{ role: "Service Engineer" }],
-    branches: ["KOC"],
+    branches: ["PKD"],
   },
   {
-    email: "engineer.clt@demo.test",
+    email: "engineer.mkm@demo.test",
     name: "Shameer K",
     phone: "9895000014",
     roles: [{ role: "Service Engineer" }],
-    branches: ["CLT"],
+    branches: ["MKM"],
   },
   {
-    email: "store.koc@demo.test",
+    email: "store.pkd@demo.test",
     name: "Sajan Mathew",
     phone: "9895000015",
     roles: [{ role: "Store Keeper" }],
-    branches: ["KOC"],
+    branches: ["PKD"],
   },
 ];
 
-/** Owner shares per branch (must total 100 per branch). Head office has none: its costs are allocated. */
+/**
+ * Owner shares per branch (must total 100 per branch). DEMO owners: the real partners and shares
+ * are still to come (setup questionnaire left them for later).
+ */
 const SHARES: Record<string, Record<string, number>> = {
-  KOC: { "Arun Kumar": 50, "Bindu Menon": 50 },
-  TVM: { "Arun Kumar": 40, "Bindu Menon": 30, "Faisal Rahman": 30 },
-  CLT: { "Arun Kumar": 35, "Faisal Rahman": 65 },
+  PKD: { "Arun Kumar": 50, "Bindu Menon": 50 },
+  MKM: { "Arun Kumar": 40, "Bindu Menon": 30, "Faisal Rahman": 30 },
 };
-const COST_ALLOCATION: Record<string, number> = { KOC: 45, TVM: 35, CLT: 20 };
+const COST_ALLOCATION: Record<string, number> = { PKD: 60, MKM: 40 };
 
 async function main() {
   const fyStart = new Date(
@@ -213,10 +196,10 @@ async function main() {
 
   // --- GST registration (Kerala) ---
   const gst = await db.gstRegistration.upsert({
-    where: { gstin: "32AAKFC1234M1ZP" },
+    where: { gstin: "32ABPFA5868C1ZE" },
     create: {
       organizationId: org.id,
-      gstin: "32AAKFC1234M1ZP",
+      gstin: "32ABPFA5868C1ZE",
       legalName: COMPANY.legalName,
       tradeName: COMPANY.name,
       stateCode: "32",
@@ -391,7 +374,7 @@ async function main() {
   await applyBrand(db, { orgId: org.id, branchIds, userIds });
 
   console.log(`Seeded: ${BRANCHES.length} branches, ${DEFAULT_ROLES.length} roles, ${USERS.length} users.`);
-  console.log(`Sign in with e.g. arun@demo.test / ${PASSWORD} (owner) or engineer.koc@demo.test (engineer).`);
+  console.log(`Sign in with e.g. arun@demo.test / ${PASSWORD} (owner) or engineer.pkd@demo.test (engineer).`);
 }
 
 main()

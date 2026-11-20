@@ -212,7 +212,7 @@ export async function seedPhase4(db: PrismaClient, ctx: Ctx) {
             ...DEFAULT_SITE.seo,
             description:
               "Chip-level mobile and laptop repair courses with placement support, and a trusted repair service centre.",
-            keywords: "chip level repair course, mobile repair course, laptop repair, phone repair Kochi",
+            keywords: "chip level repair course, mobile repair course, laptop repair, phone repair Palakkad",
           },
         }),
       },
@@ -328,7 +328,7 @@ export async function seedPhase4(db: PrismaClient, ctx: Ctx) {
         organizationId: orgId,
         isPublished: true,
         sortOrder: i,
-        branchId: branchIds.KOC ?? null,
+        branchId: branchIds.PKD ?? null,
       })),
     });
   }
@@ -437,8 +437,8 @@ export async function seedPhase4(db: PrismaClient, ctx: Ctx) {
     });
   }
 
-  // --- A few enquiries (Kochi) ---
-  if ((await db.lead.count({ where: { organizationId: orgId } })) === 0 && branchIds.KOC) {
+  // --- A few enquiries (Palakkad) ---
+  if ((await db.lead.count({ where: { organizationId: orgId } })) === 0 && branchIds.PKD) {
     const [website, walkIn, phone] = await Promise.all(
       ["Website", "Walk-in", "Phone call"].map((n) =>
         db.leadSource.findFirstOrThrow({ where: { organizationId: orgId, name: n } }),
@@ -447,9 +447,9 @@ export async function seedPhase4(db: PrismaClient, ctx: Ctx) {
     const statuses = Object.fromEntries(
       (await db.leadStatus.findMany({ where: { organizationId: orgId } })).map((s) => [s.name, s.id]),
     );
-    const adv = courses.find((c) => c.code === "MOB-ADV");
-    const lap = courses.find((c) => c.code === "LAP-CHIP");
-    const counsellor = userIds["frontdesk.koc@demo.test"] ?? null;
+    const adv = courses.find((c) => c.code === "SPE");
+    const lap = courses.find((c) => c.code === "LCE");
+    const counsellor = userIds["frontdesk.pkd@demo.test"] ?? null;
     const now = Date.now();
     const leads = [
       {
@@ -500,7 +500,7 @@ export async function seedPhase4(db: PrismaClient, ctx: Ctx) {
       const lead = await db.lead.create({
         data: {
           organizationId: orgId,
-          branchId: branchIds.KOC,
+          branchId: branchIds.PKD,
           type: l.type,
           sourceId: l.sourceId,
           statusId: l.statusId,

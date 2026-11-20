@@ -23,7 +23,7 @@ test("website enquiry → follow-up → admission", async ({ page }) => {
   // --- Visitor sends an enquiry from a course page ---
   await page.goto("/courses");
   await page
-    .getByRole("link", { name: /Advanced Chip-Level Mobile Repair/ })
+    .getByRole("link", { name: /Smartphone Engineering/ })
     .first()
     .click();
   await page.getByRole("link", { name: "Enquire about this course" }).click();
@@ -32,17 +32,17 @@ test("website enquiry → follow-up → admission", async ({ page }) => {
   await page.getByLabel("Your name").fill("Website Visitor");
   await page.getByLabel("Mobile number").fill(phone);
   await page.getByRole("combobox", { name: "Nearest branch" }).click();
-  await page.getByRole("option", { name: /^Kochi/ }).click();
-  await expect(page.getByRole("combobox", { name: "Course" })).toContainText("Advanced Chip-Level Mobile Repair");
+  await page.getByRole("option", { name: /^Palakkad/ }).click();
+  await expect(page.getByRole("combobox", { name: "Course" })).toContainText("Smartphone Engineering");
   await page.waitForTimeout(3_200); // people take more than 3 s; faster submissions are treated as bots
   await page.getByRole("button", { name: "Send enquiry" }).click();
   await expect(page.getByText("Thank you! We'll call you soon.")).toBeVisible();
 
-  // --- The Kochi counsellor gets it (round-robin) and follows up ---
-  await signIn(page, "frontdesk.koc@demo.test");
+  // --- The Palakkad counsellor gets it (round-robin) and follows up ---
+  await signIn(page, "frontdesk.pkd@demo.test");
   await page.goto(`/admin/leads?q=${phone}`);
   await page.getByRole("link", { name: "Website Visitor" }).click();
-  await expect(page.getByText("Course enquiry · Kochi")).toBeVisible();
+  await expect(page.getByText("Course enquiry · Palakkad")).toBeVisible();
   await expect(page.getByText("Assigned automatically (round-robin)")).toBeVisible();
   await page.getByRole("button", { name: "Call", exact: true }).click();
   await page.getByLabel("What happened?").fill("Called, will visit on Saturday");
@@ -62,7 +62,7 @@ test("website enquiry → follow-up → admission", async ({ page }) => {
   // --- The enquiry is now won and linked ---
   await page.goto(`/admin/leads?q=${phone}&f_state=all`);
   await page.getByRole("link", { name: "Website Visitor" }).click();
-  await expect(page.getByText(/Converted .*Advanced Chip-Level Mobile Repair admission/)).toBeVisible();
+  await expect(page.getByText(/Converted .*Smartphone Engineering admission/)).toBeVisible();
 });
 
 test("page drafts stay private until published", async ({ page }) => {

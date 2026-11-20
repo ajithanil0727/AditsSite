@@ -21,7 +21,7 @@ describe.skipIf(!hasDb)("nextDocNumber", () => {
         kind: "SERVICE",
         stateCode: "32",
         addressLine1: "Test",
-        city: "Kochi",
+        city: "Palakkad",
         pincode: "682016",
         phone: "9847000000",
       },

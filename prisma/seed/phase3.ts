@@ -36,51 +36,32 @@ export async function seedPhase3(db: PrismaClient, ctx: Ctx) {
   if ((await db.course.count({ where: { organizationId: orgId } })) > 0) return;
   const sac = await db.hsnSac.findFirst({ where: { organizationId: orgId, code: "998719" } });
 
+  // Real ADITS courses (setup questionnaire, 2026-11-20). Fees are not shown on the website.
+  // Modules and instalment plans weren't given: no syllabus yet, and "3 instalments" is a demo plan to edit.
   const courseDefs = [
     {
-      code: "MOB-ADV",
-      name: "Advanced Chip-Level Mobile Repair",
-      months: 4,
-      fee: 35000,
-      short: "Board-level mobile repair: schematics, PMIC, charging, network and display sections, BGA rework.",
-      modules: [
-        "Electronics fundamentals & tools",
-        "Reading schematics and board views",
-        "Power & charging section",
-        "Network & RF section",
-        "Display, touch & camera",
-        "BGA reballing and IC rework",
-        "Software flashing & unlocking",
-        "Live repair practice",
-      ],
+      code: "SPE",
+      name: "Smartphone Engineering",
+      months: 22,
+      fee: 90000,
+      short: "7 months class training and 15 months on-the-job training (OJT).",
+      modules: [] as string[],
     },
     {
-      code: "LAP-CHIP",
-      name: "Laptop & Desktop Chip-Level Repair",
-      months: 3,
-      fee: 30000,
-      short: "Motherboard-level laptop repair: power sequences, BIOS, charging circuits and display.",
-      modules: [
-        "Motherboard architecture",
-        "Power-on sequence & voltages",
-        "Charging & battery circuits",
-        "BIOS programming",
-        "Display & backlight",
-        "Live repair practice",
-      ],
+      code: "SPL",
+      name: "Smartphone + Laptop",
+      months: 15,
+      fee: 128000,
+      short: "12 months class training and 3 months on-the-job training (OJT).",
+      modules: [] as string[],
     },
     {
-      code: "MOB-BASIC",
-      name: "Mobile Repair Basics",
-      months: 1,
-      fee: 9000,
-      short: "Entry course: disassembly, part replacement, basic fault finding.",
-      modules: [
-        "Tools & safety",
-        "Disassembly and assembly",
-        "Display, battery and port replacement",
-        "Basic fault finding",
-      ],
+      code: "LCE",
+      name: "Laptop Chiplevel Engineering",
+      months: 22,
+      fee: 95000,
+      short: "7 months class training and 15 months on-the-job training (OJT).",
+      modules: [] as string[],
     },
   ];
   const courses: Record<string, { id: string; fee: number }> = {};
@@ -90,15 +71,19 @@ export async function seedPhase3(db: PrismaClient, ctx: Ctx) {
         organizationId: orgId,
         code: c.code,
         name: c.name,
-        slug: c.code.toLowerCase(),
+        slug: c.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, ""),
         durationValue: c.months,
         durationUnit: "MONTHS",
         fee: c.fee,
         gstMode: "EXEMPT",
         hsnSacId: sac?.id,
         shortDescription: c.short,
-        eligibility: "10th pass or above",
-        isFeatured: i < 2,
+        eligibility: "Any qualification",
+        showFeeOnWebsite: false,
+        isFeatured: true,
         sortOrder: i,
         modules: { create: c.modules.map((title, idx) => ({ title, sortOrder: idx, hours: 12 })) },
         feePlans: {
@@ -107,7 +92,7 @@ export async function seedPhase3(db: PrismaClient, ctx: Ctx) {
               name: "Full payment",
               items: { create: [{ label: "Full fee", percentOfFee: 100, dueAfterDays: 0, sortOrder: 0 }] },
             },
-            ...(c.fee > 10000
+            ...(c.fee > 0
               ? [
                   {
                     name: "3 instalments",
@@ -128,18 +113,18 @@ export async function seedPhase3(db: PrismaClient, ctx: Ctx) {
     courses[c.code] = { id: course.id, fee: c.fee };
   }
 
-  const trainer = ctx.userIds["trainer.koc@demo.test"];
+  const trainer = ctx.userIds["trainer.pkd@demo.test"];
   const now = new Date();
   const started = dateOnly(new Date(now.getTime() - 40 * DAY));
   const batches = {
-    kocAdv: await db.batch.create({
+    pkdSpe: await db.batch.create({
       data: {
         organizationId: orgId,
-        branchId: ctx.branchIds.KOC,
-        courseId: courses["MOB-ADV"].id,
+        branchId: ctx.branchIds.PKD,
+        courseId: courses["SPE"].id,
         trainerId: trainer,
-        code: "KOC-ADV-01",
-        name: "Mobile Advanced · Morning",
+        code: "PKD-SPE-01",
+        name: "Smartphone Engineering · Morning",
         startDate: started,
         timing: "09:30–12:30",
         days: "Mon–Sat",
@@ -147,14 +132,14 @@ export async function seedPhase3(db: PrismaClient, ctx: Ctx) {
         status: "ONGOING",
       },
     }),
-    kocLap: await db.batch.create({
+    pkdLce: await db.batch.create({
       data: {
         organizationId: orgId,
-        branchId: ctx.branchIds.KOC,
-        courseId: courses["LAP-CHIP"].id,
+        branchId: ctx.branchIds.PKD,
+        courseId: courses["LCE"].id,
         trainerId: trainer,
-        code: "KOC-LAP-01",
-        name: "Laptop Chip-Level · Evening",
+        code: "PKD-LCE-01",
+        name: "Laptop Chiplevel · Evening",
         startDate: dateOnly(new Date(now.getTime() + 10 * DAY)),
         timing: "17:00–20:00",
         days: "Mon–Fri",
@@ -162,13 +147,13 @@ export async function seedPhase3(db: PrismaClient, ctx: Ctx) {
         status: "PLANNED",
       },
     }),
-    tvmAdv: await db.batch.create({
+    mkmSpe: await db.batch.create({
       data: {
         organizationId: orgId,
-        branchId: ctx.branchIds.TVM,
-        courseId: courses["MOB-ADV"].id,
-        code: "TVM-ADV-01",
-        name: "Mobile Advanced · Afternoon",
+        branchId: ctx.branchIds.MKM,
+        courseId: courses["SPE"].id,
+        code: "MKM-SPE-01",
+        name: "Smartphone Engineering · Afternoon",
         startDate: started,
         timing: "14:00–17:00",
         days: "Mon–Sat",
@@ -178,10 +163,10 @@ export async function seedPhase3(db: PrismaClient, ctx: Ctx) {
     }),
   };
 
-  const cash = await db.moneyAccount.findFirst({ where: { branchId: ctx.branchIds.KOC, type: "CASH" } });
+  const cash = await db.moneyAccount.findFirst({ where: { branchId: ctx.branchIds.PKD, type: "CASH" } });
   const upi = await db.paymentMode.findFirst({ where: { organizationId: orgId, name: "UPI" } });
   const cashMode = await db.paymentMode.findFirst({ where: { organizationId: orgId, name: "Cash" } });
-  const frontDesk = ctx.userIds["frontdesk.koc@demo.test"];
+  const frontDesk = ctx.userIds["frontdesk.pkd@demo.test"];
 
   const people: {
     name: string;
@@ -195,53 +180,53 @@ export async function seedPhase3(db: PrismaClient, ctx: Ctx) {
     {
       name: "Midhun Krishna",
       phone: "9746200001",
-      city: "Aluva",
-      batch: "kocAdv",
-      course: "MOB-ADV",
-      paid: [14000, 10500],
+      city: "Olavakkode",
+      batch: "pkdSpe",
+      course: "SPE",
+      paid: [36000, 27000],
       three: true,
     },
     {
       name: "Ashwin Babu",
       phone: "9746200002",
-      city: "Kakkanad",
-      batch: "kocAdv",
-      course: "MOB-ADV",
-      paid: [14000],
+      city: "Ottapalam",
+      batch: "pkdSpe",
+      course: "SPE",
+      paid: [36000],
       three: true,
     },
     {
       name: "Fathima Rinsha",
       phone: "9746200003",
-      city: "Edappally",
-      batch: "kocAdv",
-      course: "MOB-ADV",
-      paid: [35000],
+      city: "Mannarkkad",
+      batch: "pkdSpe",
+      course: "SPE",
+      paid: [90000],
       three: false,
     },
     {
       name: "Rahul Raj",
       phone: "9746200004",
       city: "Thrissur",
-      batch: "kocAdv",
-      course: "MOB-ADV",
-      paid: [14000, 10500, 10500],
+      batch: "pkdSpe",
+      course: "SPE",
+      paid: [36000, 27000, 27000],
       three: true,
     },
     {
       name: "Nikhil Jose",
       phone: "9746200005",
-      city: "Kalamassery",
-      batch: "kocLap",
-      course: "LAP-CHIP",
+      city: "Chittur",
+      batch: "pkdLce",
+      course: "LCE",
       paid: [12000],
       three: true,
     },
   ];
   for (const [idx, p] of people.entries()) {
-    const branchId = ctx.branchIds.KOC;
-    const enrolledAt = p.batch === "kocLap" ? dateOnly(new Date(now.getTime() - 3 * DAY)) : started;
-    const studentCode = await reserve(db, branchId, "KOC", "STUDENT_ID", enrolledAt, orgId);
+    const branchId = ctx.branchIds.PKD;
+    const enrolledAt = p.batch === "pkdLce" ? dateOnly(new Date(now.getTime() - 3 * DAY)) : started;
+    const studentCode = await reserve(db, branchId, "PKD", "STUDENT_ID", enrolledAt, orgId);
     const student = await db.student.create({
       data: {
         organizationId: orgId,
@@ -281,7 +266,7 @@ export async function seedPhase3(db: PrismaClient, ctx: Ctx) {
     for (const [i, amount] of p.paid.entries()) {
       const inst = enrollment.installments[i];
       const paidAt = new Date(inst.dueDate.getTime() + 4 * 3_600_000);
-      const receiptNo = await reserve(db, branchId, "KOC", "FEE_RECEIPT", paidAt, orgId);
+      const receiptNo = await reserve(db, branchId, "PKD", "FEE_RECEIPT", paidAt, orgId);
       const pay = await db.feePayment.create({
         data: {
           organizationId: orgId,
@@ -319,14 +304,14 @@ export async function seedPhase3(db: PrismaClient, ctx: Ctx) {
     }
   }
 
-  // A week of attendance for the running Kochi batch.
-  const roster = await db.enrollment.findMany({ where: { batchId: batches.kocAdv.id } });
+  // A week of attendance for the running Palakkad batch.
+  const roster = await db.enrollment.findMany({ where: { batchId: batches.pkdSpe.id } });
   for (let d = 7; d >= 1; d--) {
     const date = dateOnly(new Date(now.getTime() - d * DAY));
     if (date.getUTCDay() === 0) continue; // Sunday
     const session = await db.batchSession.create({
       data: {
-        batchId: batches.kocAdv.id,
+        batchId: batches.pkdSpe.id,
         date,
         topic: d > 4 ? "Charging section fault finding" : "PMIC replacement practice",
         takenById: trainer,

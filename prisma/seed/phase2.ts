@@ -302,7 +302,7 @@ export async function seedPhase2(db: PrismaClient, ctx: Ctx) {
   }
   for (const v of [
     {
-      name: "Kochi Mobile Spares",
+      name: "Palakkad Mobile Spares",
       contactPerson: "Biju P",
       phone: "9846011122",
       gstin: "32ABCPK1234L1Z9",
@@ -507,7 +507,7 @@ export async function seedPhase2(db: PrismaClient, ctx: Ctx) {
     parts[p.sku] = { id: row.id, cost: p.cost, price: p.price };
   }
   const opening: Record<string, Record<string, number>> = {
-    KOC: {
+    PKD: {
       "DSP-A52": 4,
       "DSP-IP12": 2,
       "DSP-RN10": 6,
@@ -521,7 +521,7 @@ export async function seedPhase2(db: PrismaClient, ctx: Ctx) {
       "FLUX-RMA": 200,
       "TOOL-HAG-858": 3,
     },
-    TVM: {
+    MKM: {
       "DSP-A52": 2,
       "DSP-RN10": 3,
       "BAT-M31": 2,
@@ -531,7 +531,6 @@ export async function seedPhase2(db: PrismaClient, ctx: Ctx) {
       "FLUX-RMA": 100,
       "TOOL-HAG-858": 2,
     },
-    CLT: { "DSP-RN10": 2, "BAT-M31": 1, "CHG-TC-UNI": 6, "WIRE-JMP-01": 30, "TOOL-HAG-858": 1 },
   };
   for (const [code, items] of Object.entries(opening)) {
     const branchId = ctx.branchIds[code];
@@ -551,17 +550,17 @@ export async function seedPhase2(db: PrismaClient, ctx: Ctx) {
           balanceAfter: qty,
           avgCostAfter: part.cost,
           note: "Opening stock",
-          userId: ctx.userIds["store.koc@demo.test"],
+          userId: ctx.userIds["store.pkd@demo.test"],
         },
       });
     }
   }
 
-  // --- Demo customers + job cards (Kochi) ---
+  // --- Demo customers + job cards (Palakkad) ---
   if ((await db.jobCard.count({ where: { organizationId: orgId } })) > 0) return;
-  const koc = ctx.branchIds.KOC;
-  const frontDesk = ctx.userIds["frontdesk.koc@demo.test"];
-  const engineer = ctx.userIds["engineer.koc@demo.test"];
+  const pkd = ctx.branchIds.PKD;
+  const frontDesk = ctx.userIds["frontdesk.pkd@demo.test"];
+  const engineer = ctx.userIds["engineer.pkd@demo.test"];
   const demo: {
     name: string;
     phone: string;
@@ -653,7 +652,7 @@ export async function seedPhase2(db: PrismaClient, ctx: Ctx) {
   for (const d of demo) {
     const received = new Date(Date.now() - d.daysAgo * 86_400_000 - 3 * 3_600_000);
     const customer = await db.customer.create({
-      data: { organizationId: orgId, branchId: koc, name: d.name, phone: d.phone, city: "Kochi", stateCode: "32" },
+      data: { organizationId: orgId, branchId: pkd, name: d.name, phone: d.phone, city: "Palakkad", stateCode: "32" },
     });
     const device = await db.device.create({
       data: {
@@ -666,11 +665,11 @@ export async function seedPhase2(db: PrismaClient, ctx: Ctx) {
         serialNo: d.serial,
       },
     });
-    const jobNo = await reserveNumber(db, koc, "KOC", "JOB_CARD", received);
+    const jobNo = await reserveNumber(db, pkd, "PKD", "JOB_CARD", received);
     const job = await db.jobCard.create({
       data: {
         organizationId: orgId,
-        branchId: koc,
+        branchId: pkd,
         jobNo,
         customerId: customer.id,
         deviceId: device.id,
@@ -711,7 +710,7 @@ export async function seedPhase2(db: PrismaClient, ctx: Ctx) {
   ] as const) {
     if (!job) continue;
     const part = parts[sku];
-    const stock = await db.stock.findUniqueOrThrow({ where: { branchId_partId: { branchId: koc, partId: part.id } } });
+    const stock = await db.stock.findUniqueOrThrow({ where: { branchId_partId: { branchId: pkd, partId: part.id } } });
     const newQty = Number(stock.qty) - 1;
     await db.stock.update({ where: { id: stock.id }, data: { qty: newQty } });
     const jp = await db.jobPart.create({
@@ -720,7 +719,7 @@ export async function seedPhase2(db: PrismaClient, ctx: Ctx) {
     await db.stockMovement.create({
       data: {
         organizationId: orgId,
-        branchId: koc,
+        branchId: pkd,
         partId: part.id,
         type: "JOB_ISSUE",
         qty: -1,
@@ -729,7 +728,7 @@ export async function seedPhase2(db: PrismaClient, ctx: Ctx) {
         avgCostAfter: stock.avgCost,
         refType: "JobPart",
         refId: jp.id,
-        userId: ctx.userIds["store.koc@demo.test"],
+        userId: ctx.userIds["store.pkd@demo.test"],
       },
     });
     const rate = labour.find((l) => l.name === labourName)!;

@@ -26,15 +26,15 @@ test("an owner can sign in, see settings and the audit trail", async ({ page }) 
   await expect(page.getByRole("heading", { name: /Welcome, Arun/ })).toBeVisible();
 
   await page.goto("/admin/settings/branches");
-  await expect(page.getByRole("cell", { name: "Kochi", exact: true })).toBeVisible();
-  await expect(page.getByRole("cell", { name: "Kozhikode", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Palakkad", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Mukkam", exact: true })).toBeVisible();
 
   await page.goto("/admin/settings/audit-log?f_action=LOGIN_FAILED");
   await expect(page.getByText("LOGIN FAILED").first()).toBeVisible();
 });
 
 test("a service engineer only gets what their role allows", async ({ page }) => {
-  await signIn(page, "engineer.koc@demo.test");
+  await signIn(page, "engineer.pkd@demo.test");
   await expect(page.getByRole("heading", { name: /Welcome, Akhil/ })).toBeVisible();
   await expect(page.getByRole("link", { name: "Users" })).toHaveCount(0);
 

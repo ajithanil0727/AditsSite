@@ -40,7 +40,7 @@ test("intake to delivery, then the customer tracks it", async ({ page }) => {
   await page.getByRole("button", { name: "Adjust stock" }).click();
   const adjust = page.getByRole("dialog");
   await adjust.getByRole("combobox", { name: "Branch" }).click();
-  await page.getByRole("option", { name: "Kochi" }).click();
+  await page.getByRole("option", { name: "Palakkad" }).click();
   await adjust.getByRole("combobox").filter({ hasText: "Select a part" }).click();
   await page.getByPlaceholder("Search name or SKU…").fill("DSP-A52");
   await page.getByRole("option", { name: /Galaxy A52/ }).click();
@@ -51,7 +51,7 @@ test("intake to delivery, then the customer tracks it", async ({ page }) => {
 
   // --- Intake ---
   await page.goto("/admin/service/intake");
-  await pickSelect(page, "Branch", "Kochi");
+  await pickSelect(page, "Branch", "Palakkad");
   await page.getByLabel("Mobile number").fill(phone);
   await page.getByRole("button", { name: "Find" }).click();
   await expect(page.getByText("New customer: enter their details.")).toBeVisible();
@@ -71,7 +71,7 @@ test("intake to delivery, then the customer tracks it", async ({ page }) => {
 
   await expect(page).toHaveURL(/\/admin\/service\/jobs\/[a-z0-9]+/);
   const jobNo = (await page.getByRole("heading", { level: 1 }).textContent())!.trim();
-  expect(jobNo).toMatch(/^KOC\/JC\/\d{2}-\d{2}\/\d{5}$/);
+  expect(jobNo).toMatch(/^PKD\/JC\/\d{2}-\d{2}\/\d{5}$/);
   await expect(page.getByText("advance").first()).toBeVisible();
 
   // --- Unlock code is hidden until revealed (owner is not the assigned engineer but has the permission) ---
@@ -106,7 +106,7 @@ test("intake to delivery, then the customer tracks it", async ({ page }) => {
   await page.getByRole("button", { name: "Issue invoice" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Issue invoice" }).click();
   await expect(page.getByText("Invoice issued").first()).toBeVisible();
-  await expect(page.getByText(/KOC\/2627\/\d{5}/).first()).toBeVisible();
+  await expect(page.getByText(/PKD\/2627\/\d{5}/).first()).toBeVisible();
   await expect(page.getByText("₹4,500.00 due").first()).toBeVisible();
 
   // Delivery is blocked while money is due
@@ -131,7 +131,7 @@ test("intake to delivery, then the customer tracks it", async ({ page }) => {
   await expect(page.getByText("••••••")).toHaveCount(0); // unlock code wiped
 
   // --- Invoice print view shows the GST split ---
-  const invoiceLink = page.getByRole("link", { name: /KOC\/2627\// }).first();
+  const invoiceLink = page.getByRole("link", { name: /PKD\/2627\// }).first();
   await invoiceLink.click();
   await expect(page.getByText("TAX INVOICE")).toBeVisible();
   await expect(page.getByText("Rupees Five Thousand Only")).toBeVisible();
