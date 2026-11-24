@@ -46,12 +46,16 @@ describe("permissions catalogue", () => {
     expect(expandPermissions(["roles.*"]).sort()).toEqual(["roles.manage", "roles.view"]);
     expect(() => expandPermissions(["nope.view"])).toThrow();
   });
-  it("default roles only use real permissions; the super admin has all, the owner all but managing owners", () => {
+  it("default roles only use real permissions; super admin has all; owner all but managing owners and the audit log", () => {
     for (const role of DEFAULT_ROLES) for (const p of role.permissions) expect(ALL_PERMISSION_KEYS).toContain(p);
     expect(DEFAULT_ROLES.find((r) => r.name === "Super Admin")!.permissions.length).toBe(ALL_PERMISSION_KEYS.length);
-    expect(DEFAULT_ROLES.find((r) => r.name === "Owner / Partner")!.permissions.length).toBe(
-      ALL_PERMISSION_KEYS.length - 1,
-    );
+    const owner = DEFAULT_ROLES.find((r) => r.name === "Owner / Partner")!.permissions;
+    expect(owner.length).toBe(ALL_PERMISSION_KEYS.length - 2);
+    expect(owner).not.toContain("users.manage_protected");
+    expect(owner).not.toContain("audit.view");
+    // The audit log is for the super admin only.
+    for (const r of DEFAULT_ROLES.filter((x) => x.name !== "Super Admin"))
+      expect(r.permissions, r.name).not.toContain("audit.view");
     expect(DEFAULT_ROLES.find((r) => r.name === "Admin")!.permissions).not.toContain("profit.lock");
   });
 });

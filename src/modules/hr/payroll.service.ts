@@ -20,7 +20,8 @@ const p = (v: Prisma.Decimal | number | null | undefined) => rupeesToPaise(Numbe
  */
 export async function buildPayroll(ctx: ActionContext, input: z.output<typeof payrollRunSchema>) {
   const orgId = ctx.user.organizationId;
-  if (!canAccessBranch(ctx.user.access, "payroll.run", input.branchId)) throw new ActionError("You can't run payroll for this branch.");
+  if (!canAccessBranch(ctx.user.access, "payroll.run", input.branchId))
+    throw new ActionError("You can't run payroll for this branch.");
   const start = new Date(Date.UTC(input.year, input.month - 1, 1));
   const end = new Date(Date.UTC(input.year, input.month, 0));
   const today = new Date(Date.now() + 330 * 60_000);
@@ -28,11 +29,18 @@ export async function buildPayroll(ctx: ActionContext, input: z.output<typeof pa
 
   return db.$transaction(
     async (tx) => {
-      const branch = await tx.branch.findFirst({ where: { id: input.branchId, organizationId: orgId, deletedAt: null } });
+      const branch = await tx.branch.findFirst({
+        where: { id: input.branchId, organizationId: orgId, deletedAt: null },
+      });
       if (!branch) throw new ActionError("Branch not found.");
-      let run = await tx.payrollRun.findUnique({ where: { branchId_year_month: { branchId: branch.id, year: input.year, month: input.month } } });
+      let run = await tx.payrollRun.findUnique({
+        where: { branchId_year_month: { branchId: branch.id, year: input.year, month: input.month } },
+      });
       if (run && run.status !== "DRAFT") throw new ActionError("This month's payroll is already finalised.");
-      if (!run) run = await tx.payrollRun.create({ data: { organizationId: orgId, branchId: branch.id, year: input.year, month: input.month } });
+      if (!run)
+        run = await tx.payrollRun.create({
+          data: { organizationId: orgId, branchId: branch.id, year: input.year, month: input.month },
+        });
       await tx.payslip.deleteMany({ where: { payrollRunId: run.id } });
 
       const employees = await tx.employee.findMany({
@@ -66,10 +74,21 @@ export async function buildPayroll(ctx: ActionContext, input: z.output<typeof pa
         const [marks, leaves, incentives, advances] = await Promise.all([
           tx.employeeAttendance.findMany({ where: { employeeId: e.id, date: { gte: start, lte: end } } }),
           tx.leaveRequest.findMany({
-            where: { employeeId: e.id, status: "APPROVED", leaveType: { isPaid: true }, fromDate: { lte: end }, toDate: { gte: start } },
+            where: {
+              employeeId: e.id,
+              status: "APPROVED",
+              leaveType: { isPaid: true },
+              fromDate: { lte: end },
+              toDate: { gte: start },
+            },
           }),
-          tx.incentive.findMany({ where: { employeeId: e.id, year: input.year, month: input.month, status: "APPROVED", payslipId: null } }),
-          tx.salaryAdvance.findMany({ where: { employeeId: e.id, status: "OPEN", givenAt: { lte: end } }, orderBy: { givenAt: "asc" } }),
+          tx.incentive.findMany({
+            where: { employeeId: e.id, year: input.year, month: input.month, status: "APPROVED", payslipId: null },
+          }),
+          tx.salaryAdvance.findMany({
+            where: { employeeId: e.id, status: "OPEN", givenAt: { lte: end } },
+            orderBy: { givenAt: "asc" },
+          }),
         ]);
         const paidLeave = new Set<string>();
         for (const l of leaves) leaveDays(l.fromDate, l.toDate, holidays).dates.forEach((d) => paidLeave.add(d));
@@ -85,8 +104,12 @@ export async function buildPayroll(ctx: ActionContext, input: z.output<typeof pa
         const outstanding = advances.reduce((a, x) => a + p(x.amount) - p(x.recoveredAmount), 0);
         const monthly = advances.reduce((a, x) => a + p(x.monthlyRecovery), 0);
         const slip = computePayslip({
-          earnings: structure.items.filter((i) => i.component.type === "EARNING").map((i) => ({ componentId: i.componentId, label: i.component.name, amount: p(i.amount) })),
-          deductions: structure.items.filter((i) => i.component.type === "DEDUCTION").map((i) => ({ componentId: i.componentId, label: i.component.name, amount: p(i.amount) })),
+          earnings: structure.items
+            .filter((i) => i.component.type === "EARNING")
+            .map((i) => ({ componentId: i.componentId, label: i.component.name, amount: p(i.amount) })),
+          deductions: structure.items
+            .filter((i) => i.component.type === "DEDUCTION")
+            .map((i) => ({ componentId: i.componentId, label: i.component.name, amount: p(i.amount) })),
           daysInMonth: daysInMonth(input.year, input.month),
           paidDays: summary.paidDays,
           incentives: incentives.reduce((a, i) => a + p(i.amount), 0),
@@ -108,8 +131,18 @@ export async function buildPayroll(ctx: ActionContext, input: z.output<typeof pa
             summary: summary as unknown as Prisma.InputJsonValue,
             items: {
               create: [
-                ...slip.earnings.map((l) => ({ componentId: l.componentId, label: l.label, type: "EARNING" as const, amount: paiseToDecimalString(l.amount) })),
-                ...slip.deductions.map((l) => ({ componentId: l.componentId, label: l.label, type: "DEDUCTION" as const, amount: paiseToDecimalString(l.amount) })),
+                ...slip.earnings.map((l) => ({
+                  componentId: l.componentId,
+                  label: l.label,
+                  type: "EARNING" as const,
+                  amount: paiseToDecimalString(l.amount),
+                })),
+                ...slip.deductions.map((l) => ({
+                  componentId: l.componentId,
+                  label: l.label,
+                  type: "DEDUCTION" as const,
+                  amount: paiseToDecimalString(l.amount),
+                })),
               ],
             },
           },
@@ -138,7 +171,8 @@ export async function finalizePayroll(ctx: ActionContext, runId: string) {
         include: { payslips: { include: { employee: true } } },
       });
       if (!run) throw new ActionError("Payroll not found.");
-      if (!canAccessBranch(ctx.user.access, "payroll.finalize", run.branchId)) throw new ActionError("Not your branch.");
+      if (!canAccessBranch(ctx.user.access, "payroll.finalize", run.branchId))
+        throw new ActionError("Not your branch.");
       if (run.status !== "DRAFT") throw new ActionError("Already finalised.");
       if (run.payslips.length === 0) throw new ActionError("There are no payslips. Work out the payroll first.");
       for (const s of run.payslips) {
@@ -148,7 +182,10 @@ export async function finalizePayroll(ctx: ActionContext, runId: string) {
         });
         let left = p(s.advanceRecovery);
         if (left > 0) {
-          const advances = await tx.salaryAdvance.findMany({ where: { employeeId: s.employeeId, status: "OPEN" }, orderBy: { givenAt: "asc" } });
+          const advances = await tx.salaryAdvance.findMany({
+            where: { employeeId: s.employeeId, status: "OPEN" },
+            orderBy: { givenAt: "asc" },
+          });
           for (const a of advances) {
             if (left <= 0) break;
             const due = p(a.amount) - p(a.recoveredAmount);
@@ -157,12 +194,18 @@ export async function finalizePayroll(ctx: ActionContext, runId: string) {
             const recovered = p(a.recoveredAmount) + take;
             await tx.salaryAdvance.update({
               where: { id: a.id },
-              data: { recoveredAmount: paiseToDecimalString(recovered), status: recovered >= p(a.amount) ? "CLOSED" : "OPEN" },
+              data: {
+                recoveredAmount: paiseToDecimalString(recovered),
+                status: recovered >= p(a.amount) ? "CLOSED" : "OPEN",
+              },
             });
           }
         }
       }
-      await tx.payrollRun.update({ where: { id: run.id }, data: { status: "FINALIZED", finalizedById: ctx.user.id, finalizedAt: new Date() } });
+      await tx.payrollRun.update({
+        where: { id: run.id },
+        data: { status: "FINALIZED", finalizedById: ctx.user.id, finalizedAt: new Date() },
+      });
       await writeAudit(tx, ctx.actor, {
         action: "APPROVE",
         entityType: "PayrollRun",
@@ -185,8 +228,10 @@ export async function payPayroll(ctx: ActionContext, input: z.output<typeof payr
         include: { payslips: { where: { paidAt: null }, include: { employee: true } } },
       });
       if (!run) throw new ActionError("Payroll not found.");
-      if (!canAccessBranch(ctx.user.access, "payroll.mark_paid", run.branchId)) throw new ActionError("Not your branch.");
-      if (run.status !== "FINALIZED") throw new ActionError(run.status === "PAID" ? "Already paid." : "Finalise the payroll first.");
+      if (!canAccessBranch(ctx.user.access, "payroll.mark_paid", run.branchId))
+        throw new ActionError("Not your branch.");
+      if (run.status !== "FINALIZED")
+        throw new ActionError(run.status === "PAID" ? "Already paid." : "Finalise the payroll first.");
       await assertMoneyAccount(tx, input.moneyAccountId, run.branchId);
       const paidOn = dateOnly(input.paidOn);
       for (const s of run.payslips) {
@@ -205,7 +250,10 @@ export async function payPayroll(ctx: ActionContext, input: z.output<typeof payr
             createdById: ctx.user.id,
           });
         }
-        await tx.payslip.update({ where: { id: s.id }, data: { paidAt: paidOn, moneyAccountId: input.moneyAccountId } });
+        await tx.payslip.update({
+          where: { id: s.id },
+          data: { paidAt: paidOn, moneyAccountId: input.moneyAccountId },
+        });
       }
       await tx.payrollRun.update({ where: { id: run.id }, data: { status: "PAID" } });
       await writeAudit(tx, ctx.actor, {
@@ -223,8 +271,15 @@ export async function payPayroll(ctx: ActionContext, input: z.output<typeof payr
 
 export async function deletePayrollDraft(ctx: ActionContext, runId: string) {
   const run = await db.payrollRun.findFirst({ where: { id: runId, organizationId: ctx.user.organizationId } });
-  if (!run || !canAccessBranch(ctx.user.access, "payroll.run", run.branchId)) throw new ActionError("Payroll not found.");
+  if (!run || !canAccessBranch(ctx.user.access, "payroll.run", run.branchId))
+    throw new ActionError("Payroll not found.");
   if (run.status !== "DRAFT") throw new ActionError("A finalised payroll can't be deleted.");
   await db.payrollRun.delete({ where: { id: runId } });
-  await writeAudit(db, ctx.actor, { action: "DELETE", entityType: "PayrollRun", entityId: runId, branchId: run.branchId, before: run });
+  await writeAudit(db, ctx.actor, {
+    action: "DELETE",
+    entityType: "PayrollRun",
+    entityId: runId,
+    branchId: run.branchId,
+    before: run,
+  });
 }

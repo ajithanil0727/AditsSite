@@ -11,6 +11,7 @@ import { formatDate, formatINR } from "@/lib/format";
 import { istDateOnly } from "@/lib/fy";
 import { requirePagePermission } from "@/modules/auth/current";
 import { employeeFormOptions, getEmployee } from "@/modules/hr/hr.queries";
+import { employeeMonthSummary } from "@/modules/hr/staff-register";
 import { EMPLOYEE_STATUS_LABELS, MONTHS } from "@/modules/hr/hr.schemas";
 import { can, canAccessBranch } from "@/modules/rbac/access";
 import { EmployeeFormDialog } from "../employee-form";
@@ -35,6 +36,7 @@ export default async function EmployeePage(props: PageProps<"/admin/hr/employees
   const e = await getEmployee(user, id);
   if (!e) notFound();
   const today = istDateOnly(new Date()).toISOString().slice(0, 10);
+  const month = await employeeMonthSummary(user, e.id);
   const canEdit = canAccessBranch(user.access, "employees.update", e.branch.id) && !e.deleted;
   const canPay = canAccessBranch(user.access, "payroll.run", e.branch.id);
   const canAdvance = canAccessBranch(user.access, "advances.manage", e.branch.id);
@@ -157,6 +159,41 @@ export default async function EmployeePage(props: PageProps<"/admin/hr/employees
                     </p>
                   )}
                 </>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {month && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Attendance · {month.period.label}</CardTitle>
+              <Button asChild size="sm" variant="outline">
+                <Link href={`/admin/hr/attendance-register?branch=${month.branchId}&month=${month.period.month}`}>
+                  Register
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid grid-cols-3 gap-3 text-sm sm:grid-cols-6">
+                {(
+                  [
+                    ["Present", month.summary.present],
+                    ["Half days", month.summary.halfDays],
+                    ["Absent", month.summary.absent],
+                    ["Leave", month.summary.paidLeave + month.summary.unpaidLeave],
+                    ["Not marked", month.summary.unmarked],
+                    ["Paid days so far", month.summary.paidDays],
+                  ] as const
+                ).map(([k, v]) => (
+                  <div key={k} className="rounded-lg bg-muted/50 p-2">
+                    <dt className="text-xs text-muted-foreground">{k}</dt>
+                    <dd className="font-semibold tabular-nums">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+              {month.summary.lopDays > 0 && (
+                <p className="mt-2 text-xs text-muted-foreground">{month.summary.lopDays} loss-of-pay day(s) so far.</p>
               )}
             </CardContent>
           </Card>

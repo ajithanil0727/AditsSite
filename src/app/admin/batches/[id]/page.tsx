@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PencilIcon } from "lucide-react";
+import { ClipboardListIcon, PencilIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -88,8 +88,13 @@ export default async function BatchPage(props: PageProps<"/admin/batches/[id]">)
       />
       <div className="grid gap-6 lg:grid-cols-5">
         <Card className="lg:col-span-3">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
             <CardTitle>Attendance</CardTitle>
+            <Button size="sm" variant="outline" asChild>
+              <Link href={`/admin/attendance-register?batch=${b.id}&month=${date.slice(0, 7)}`}>
+                <ClipboardListIcon /> Monthly register
+              </Link>
+            </Button>
           </CardHeader>
           <CardContent>
             {active.length === 0 ? (

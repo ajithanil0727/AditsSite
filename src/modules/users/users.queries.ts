@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { paging, type ListParams } from "@/lib/list-params";
 import type { CurrentUser } from "@/modules/auth/current";
 import { branchConstraint } from "@/modules/rbac/access";
-import { canManageProtected } from "@/modules/rbac/escalation";
+import { canManageProtected, NOT_SUPER_ADMIN_ROLE_WHERE, NOT_SUPER_ADMIN_USER_WHERE } from "@/modules/rbac/escalation";
 
 export const USER_SORTS = ["name", "email", "lastLoginAt"] as const;
 
@@ -12,6 +12,8 @@ export async function listUsers(user: CurrentUser, p: ListParams, activeBranchId
   const scope = branchConstraint(user.access, "users.view", activeBranchId);
   const where: Prisma.UserWhereInput = {
     organizationId: user.organizationId,
+    // Super Admin accounts are only listed for super admins.
+    ...(canManageProtected(user.access) ? {} : NOT_SUPER_ADMIN_USER_WHERE),
     deletedAt: p.showDeleted ? { not: null } : null,
     ...(scope.branchIds ? { branches: { some: { branchId: { in: scope.branchIds } } } } : {}),
     ...(p.filters.role ? { roles: { some: { roleId: p.filters.role } } } : {}),
@@ -84,7 +86,11 @@ export type UserRow = Awaited<ReturnType<typeof listUsers>>["rows"][number];
 export async function userFormOptions(user: CurrentUser) {
   const [roles, branches] = await Promise.all([
     db.role.findMany({
-      where: { organizationId: user.organizationId, deletedAt: null },
+      where: {
+        organizationId: user.organizationId,
+        deletedAt: null,
+        ...(canManageProtected(user.access) ? {} : NOT_SUPER_ADMIN_ROLE_WHERE),
+      },
       select: {
         id: true,
         name: true,

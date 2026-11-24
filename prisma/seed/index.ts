@@ -333,6 +333,9 @@ async function main() {
   const LATER_REVOKES: { key: string; role: string; permissions: string[] }[] = [
     // Phase 7: certificates are issued / cancelled by owners and branch managers only.
     { key: "seed.revokes.phase7", role: "Admin", permissions: ["certificates.issue", "certificates.revoke"] },
+    // 2026-11-24: the audit log is for the super admin only.
+    { key: "seed.revokes.audit.owner", role: "Owner / Partner", permissions: ["audit.view"] },
+    { key: "seed.revokes.audit.admin", role: "Admin", permissions: ["audit.view"] },
   ];
   for (const g of LATER_REVOKES) {
     const done = await db.setting.findUnique({ where: { organizationId_key: { organizationId: org.id, key: g.key } } });

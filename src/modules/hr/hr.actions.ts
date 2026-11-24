@@ -50,30 +50,66 @@ export const saveEmployeeAction = defineAction(
     return done(eid);
   },
 );
-export const deleteEmployeeAction = defineAction({ permission: "employees.delete", schema: z.object({ id: z.string().min(1), restore: z.boolean() }) }, async (i, ctx) =>
-  done(await setEmployeeDeleted(ctx, i.id, !i.restore)),
+export const deleteEmployeeAction = defineAction(
+  { permission: "employees.delete", schema: z.object({ id: z.string().min(1), restore: z.boolean() }) },
+  async (i, ctx) => done(await setEmployeeDeleted(ctx, i.id, !i.restore)),
 );
-export const saveSalaryAction = defineAction({ permission: "payroll.run", schema: salaryStructureSchema }, async (i, ctx) => done(await saveSalaryStructure(ctx, i)));
-export const saveAttendanceAction = defineAction({ permission: "hr_attendance.mark", schema: staffAttendanceSchema }, async (i, ctx) =>
-  done(await saveStaffAttendance(ctx, i)),
+export const saveSalaryAction = defineAction(
+  { permission: "payroll.run", schema: salaryStructureSchema },
+  async (i, ctx) => done(await saveSalaryStructure(ctx, i)),
 );
-export const saveHolidayAction = defineAction({ permission: "masters.hr", schema: holidaySchema }, async (i, ctx) => done(await saveHoliday(ctx, i)));
-export const deleteHolidayAction = defineAction({ permission: "masters.hr", schema: id }, async (i, ctx) => done(await deleteHoliday(ctx, i.id)));
+export const saveAttendanceAction = defineAction(
+  { permission: "hr_attendance.mark", schema: staffAttendanceSchema },
+  async (i, ctx) => done(await saveStaffAttendance(ctx, i)),
+);
+export const saveHolidayAction = defineAction({ permission: "masters.hr", schema: holidaySchema }, async (i, ctx) =>
+  done(await saveHoliday(ctx, i)),
+);
+export const deleteHolidayAction = defineAction({ permission: "masters.hr", schema: id }, async (i, ctx) =>
+  done(await deleteHoliday(ctx, i.id)),
+);
 
-export const requestLeaveAction = defineAction({ permission: "leaves.apply", schema: leaveRequestSchema }, async (i, ctx) => done(await requestLeave(ctx, i)));
-export const decideLeaveAction = defineAction({ permission: "leaves.approve", schema: decisionSchema }, async (i, ctx) => done(await decideLeave(ctx, i)));
-export const cancelLeaveAction = defineAction({ permission: "leaves.apply", schema: id }, async (i, ctx) => done(await cancelLeave(ctx, i.id)));
+export const requestLeaveAction = defineAction(
+  { permission: "leaves.apply", schema: leaveRequestSchema },
+  async (i, ctx) => done(await requestLeave(ctx, i)),
+);
+export const decideLeaveAction = defineAction(
+  { permission: "leaves.approve", schema: decisionSchema },
+  async (i, ctx) => done(await decideLeave(ctx, i)),
+);
+export const cancelLeaveAction = defineAction({ permission: "leaves.apply", schema: id }, async (i, ctx) =>
+  done(await cancelLeave(ctx, i.id)),
+);
 
-export const giveAdvanceAction = defineAction({ permission: "advances.manage", schema: advanceSchema }, async (i, ctx) => done(await giveAdvance(ctx, i)));
-export const addIncentiveAction = defineAction({ permission: "incentives.manage", schema: incentiveSchema }, async (i, ctx) => done(await addIncentive(ctx, i)));
-export const decideIncentiveAction = defineAction({ permission: "incentives.approve", schema: decisionSchema }, async (i, ctx) => done(await decideIncentive(ctx, i)));
+export const giveAdvanceAction = defineAction(
+  { permission: "advances.manage", schema: advanceSchema },
+  async (i, ctx) => done(await giveAdvance(ctx, i)),
+);
+export const addIncentiveAction = defineAction(
+  { permission: "incentives.manage", schema: incentiveSchema },
+  async (i, ctx) => done(await addIncentive(ctx, i)),
+);
+export const decideIncentiveAction = defineAction(
+  { permission: "incentives.approve", schema: decisionSchema },
+  async (i, ctx) => done(await decideIncentive(ctx, i)),
+);
 
-export const buildPayrollAction = defineAction({ permission: "payroll.run", schema: payrollRunSchema }, async (i, ctx) => {
-  const r = await buildPayroll(ctx, i);
-  redirect(`/admin/hr/payroll/${r.id}${r.skipped.length ? `?skipped=${encodeURIComponent(r.skipped.join(", "))}` : ""}`);
-});
-export const finalizePayrollAction = defineAction({ permission: "payroll.finalize", schema: id }, async (i, ctx) => done(await finalizePayroll(ctx, i.id)));
-export const payPayrollAction = defineAction({ permission: "payroll.mark_paid", schema: payrollPaySchema }, async (i, ctx) => done(await payPayroll(ctx, i)));
+export const buildPayrollAction = defineAction(
+  { permission: "payroll.run", schema: payrollRunSchema },
+  async (i, ctx) => {
+    const r = await buildPayroll(ctx, i);
+    redirect(
+      `/admin/hr/payroll/${r.id}${r.skipped.length ? `?skipped=${encodeURIComponent(r.skipped.join(", "))}` : ""}`,
+    );
+  },
+);
+export const finalizePayrollAction = defineAction({ permission: "payroll.finalize", schema: id }, async (i, ctx) =>
+  done(await finalizePayroll(ctx, i.id)),
+);
+export const payPayrollAction = defineAction(
+  { permission: "payroll.mark_paid", schema: payrollPaySchema },
+  async (i, ctx) => done(await payPayroll(ctx, i)),
+);
 export const deletePayrollAction = defineAction({ permission: "payroll.run", schema: id }, async (i, ctx) => {
   await deletePayrollDraft(ctx, i.id);
   redirect("/admin/hr/payroll");
@@ -93,7 +129,12 @@ export async function uploadEmployeeDocAction(formData: FormData): Promise<Actio
     if (!file.success || file.data.size === 0) return { ok: false, error: "Choose a file to upload." };
     if (!meta.success) return { ok: false, error: "Name the document (e.g. Aadhaar)." };
     const actor = { organizationId: user.organizationId, userId: user.id, ...(await getRequestMeta()) };
-    const asset = await saveUpload(actor, file.data, { allowed: DOCUMENT_TYPES, maxBytes: 8 * 1024 * 1024, isPublic: false, folder: "employees" });
+    const asset = await saveUpload(actor, file.data, {
+      allowed: DOCUMENT_TYPES,
+      maxBytes: 8 * 1024 * 1024,
+      isPublic: false,
+      folder: "employees",
+    });
     await addEmployeeDocument({ user, activeBranchId: null, actor }, meta.data.employeeId, asset.id, meta.data.label);
     refresh();
     return { ok: true, data: { id: asset.id } };

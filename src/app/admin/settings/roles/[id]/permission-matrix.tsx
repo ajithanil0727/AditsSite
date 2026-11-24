@@ -26,10 +26,13 @@ export function PermissionMatrix({
   role,
   canManage,
   ownPermissions,
+  hiddenPermissions = [],
 }: {
   role: Role;
   canManage: boolean;
   ownPermissions: string[];
+  /** Super-admin-only permissions, not shown to anyone else (they keep their current value on save). */
+  hiddenPermissions?: string[];
 }) {
   const [selected, setSelected] = useState(() => new Set(role.permissions));
   const [name, setName] = useState(role.name);
@@ -40,9 +43,15 @@ export function PermissionMatrix({
   const [pending, startTransition] = useTransition();
   const own = useMemo(() => new Set(ownPermissions), [ownPermissions]);
 
-  const modules = Object.entries(PERMISSION_MODULES).filter(([, m]) =>
-    m.label.toLowerCase().includes(filter.trim().toLowerCase()),
-  );
+  const hidden = useMemo(() => new Set(hiddenPermissions), [hiddenPermissions]);
+  const modules = Object.entries(PERMISSION_MODULES)
+    .map(([moduleKey, m]) => {
+      const actions = Object.entries(m.actions).filter(([a]) => !hidden.has(`${moduleKey}.${a}`));
+      return [moduleKey, { label: m.label, actions: Object.fromEntries(actions) as Record<string, string> }] as const;
+    })
+    .filter(
+      ([, m]) => Object.keys(m.actions).length > 0 && m.label.toLowerCase().includes(filter.trim().toLowerCase()),
+    );
   const editable = (key: string) => canManage && own.has(key);
   const toggle = (key: string, on: boolean) =>
     setSelected((prev) => {

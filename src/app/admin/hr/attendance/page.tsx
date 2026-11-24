@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { ClipboardListIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
 import { istDateOnly } from "@/lib/fy";
 import { getActiveBranchId, requirePagePermission } from "@/modules/auth/current";
 import { attendanceSheet, branchOptions } from "@/modules/hr/hr.queries";
@@ -32,6 +35,13 @@ export default async function StaffAttendancePage(props: PageProps<"/admin/hr/at
       <PageHeader
         title="Staff attendance"
         description="Mark everyone once a day. Unmarked working days count as present but are flagged on the payroll."
+        actions={
+          <Button variant="outline" asChild>
+            <Link href="/admin/hr/attendance-register">
+              <ClipboardListIcon /> Monthly register
+            </Link>
+          </Button>
+        }
       />
       <StaffAttendanceSheet
         key={`${branchId}-${date}`}

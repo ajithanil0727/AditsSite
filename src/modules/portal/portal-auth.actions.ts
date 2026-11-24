@@ -16,10 +16,13 @@ export const inviteStudentAction = defineAction({ permission: "students.update",
   refresh();
   return r;
 });
-export const disableStudentPortalAction = defineAction({ permission: "students.update", schema: id }, async (i, ctx) => {
-  await disableStudentPortal(ctx, i.id);
-  refresh();
-});
+export const disableStudentPortalAction = defineAction(
+  { permission: "students.update", schema: id },
+  async (i, ctx) => {
+    await disableStudentPortal(ctx, i.id);
+    refresh();
+  },
+);
 
 // ------------------------------------------------------------------ public (no session)
 
@@ -43,7 +46,11 @@ const setSchema = z
   .object({ token: z.string().min(20).max(200), password: passwordSchema, confirm: z.string() })
   .refine((v) => v.password === v.confirm, { path: ["confirm"], message: "The passwords don't match" });
 
-export async function setPasswordAction(input: { token: string; password: string; confirm: string }): Promise<PublicResult> {
+export async function setPasswordAction(input: {
+  token: string;
+  password: string;
+  confirm: string;
+}): Promise<PublicResult> {
   if (limited(`set:${await ip()}`, 20)) return { ok: false, error: "Too many tries. Please wait a few minutes." };
   const parsed = setSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the password." };
@@ -58,7 +65,10 @@ export async function setPasswordAction(input: { token: string; password: string
 }
 
 export async function forgotPasswordAction(input: { email: string }): Promise<PublicResult> {
-  const sent = { ok: true as const, message: "If that email has an account, a reset link is on its way. It works for 1 hour." };
+  const sent = {
+    ok: true as const,
+    message: "If that email has an account, a reset link is on its way. It works for 1 hour.",
+  };
   const parsed = z.object({ email: z.email() }).safeParse(input);
   if (!parsed.success) return { ok: false, error: "Enter a valid email." };
   if (limited(`forgot:${await ip()}`, 5) || limited(`forgot:${parsed.data.email.toLowerCase()}`, 3)) return sent;

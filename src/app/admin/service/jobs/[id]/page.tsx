@@ -214,13 +214,22 @@ export default async function JobPage(props: PageProps<"/admin/service/jobs/[id]
               <CardTitle>Customer</CardTitle>
             </CardHeader>
             <CardContent className="space-y-1 text-sm">
-              <Link href={`/admin/service/customers/${job.customerId}`} className="font-medium hover:underline">
-                {job.customer.name}
-              </Link>
-              <div>
-                {job.customer.phone}
-                {job.customer.altPhone ? ` · ${job.customer.altPhone}` : ""}
-              </div>
+              {job.customer.phone ? (
+                <>
+                  <Link href={`/admin/service/customers/${job.customerId}`} className="font-medium hover:underline">
+                    {job.customer.name}
+                  </Link>
+                  <div>
+                    {job.customer.phone}
+                    {job.customer.altPhone ? ` · ${job.customer.altPhone}` : ""}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="font-medium">{job.customer.name}</div>
+                  <div className="text-xs text-muted-foreground">Contact the customer through the service desk.</div>
+                </>
+              )}
               {job.customer.gstin && <div className="font-mono text-xs">GSTIN {job.customer.gstin}</div>}
               {job.customer.address && <div className="text-muted-foreground">{job.customer.address}</div>}
             </CardContent>

@@ -20,8 +20,14 @@ export function jobScopeWhere(user: CurrentUser, activeBranchId: string | null):
   };
 }
 
+/** Customer phone numbers / addresses: only with customers.view (engineers don't get them, 2026-11-24). */
+export function canSeeCustomerContact(user: CurrentUser) {
+  return can(user.access, "customers.view");
+}
+
 export async function listJobs(user: CurrentUser, p: ListParams, activeBranchId: string | null) {
   const f = p.filters;
+  const contact = canSeeCustomerContact(user);
   const where: Prisma.JobCardWhereInput = {
     ...jobScopeWhere(user, activeBranchId),
     ...(f.status === "open" || !f.status
@@ -36,7 +42,7 @@ export async function listJobs(user: CurrentUser, p: ListParams, activeBranchId:
       ? {
           OR: [
             { jobNo: { contains: p.q, mode: "insensitive" } },
-            { customer: { phone: { contains: p.q } } },
+            ...(contact ? [{ customer: { phone: { contains: p.q } } }] : []),
             { customer: { name: { contains: p.q, mode: "insensitive" } } },
             { device: { imei: { contains: p.q } } },
             { device: { serialNo: { contains: p.q, mode: "insensitive" } } },
@@ -75,7 +81,7 @@ export async function listJobs(user: CurrentUser, p: ListParams, activeBranchId:
       jobNo: j.jobNo,
       branchCode: j.branch.code,
       customer: j.customer.name,
-      phone: j.customer.phone,
+      phone: contact ? j.customer.phone : null,
       device:
         [j.device.brand?.name, j.device.model?.name ?? j.device.modelText].filter(Boolean).join(" ") ||
         j.device.deviceType.name,
@@ -266,6 +272,18 @@ export async function getJob(user: CurrentUser, id: string) {
   const a = user.access;
   if (!canAccessBranch(a, "jobcards.view", job.branchId)) return null;
   if (scopeOf(a, "jobcards.view") === "OWN" && job.assignedEngineerId !== user.id) return null;
+  // Without customers.view the contact details never leave the server.
+  if (!canSeeCustomerContact(user)) {
+    job.customer = {
+      ...job.customer,
+      phone: "",
+      altPhone: null,
+      email: null,
+      address: null,
+      city: null,
+      pincode: null,
+    };
+  }
 
   const lines = buildChargeLines({
     isWarrantyJob: job.isWarrantyJob,
@@ -325,6 +343,13 @@ export async function getJob(user: CurrentUser, id: string) {
     can: {
       changeStatus: open && inBranch("jobcards.change_status") && statuses.length > 0,
       assign: open && inBranch("jobcards.assign"),
+      // The engineer's own job, before it's repaired: they may put it back on the shelf.
+      returnToShelf:
+        job.assignedEngineerId === user.id &&
+        inBranch("jobcards.self_assign") &&
+        OPEN_KEYS.includes(key) &&
+        key !== "READY" &&
+        key !== "QC",
       editCharges: editable && inBranch("jobcards.update"),
       requestPart: editable && inBranch("part_requests.create"),
       issuePart: editable && inBranch("part_requests.issue"),
@@ -358,10 +383,20 @@ export async function labourOptions(organizationId: string) {
 
 // ---------------------------------------------------------------- customers
 
+/** Customers of the user's branches: registered there, or with a job there. */
+function customerScopeWhere(user: CurrentUser): Prisma.CustomerWhereInput {
+  const c = branchConstraint(user.access, "customers.view", null);
+  if (c.branchIds === null) return {};
+  return {
+    OR: [{ branchId: { in: c.branchIds } }, { jobCards: { some: { branchId: { in: c.branchIds }, deletedAt: null } } }],
+  };
+}
+
 export async function listCustomers(user: CurrentUser, p: ListParams) {
   const where: Prisma.CustomerWhereInput = {
     organizationId: user.organizationId,
     deletedAt: null,
+    AND: [customerScopeWhere(user)],
     ...(p.q
       ? {
           OR: [
@@ -410,7 +445,7 @@ export type CustomerRow = Awaited<ReturnType<typeof listCustomers>>["rows"][numb
 
 export async function getCustomer(user: CurrentUser, id: string) {
   const c = await db.customer.findFirst({
-    where: { id, organizationId: user.organizationId, deletedAt: null },
+    where: { id, organizationId: user.organizationId, deletedAt: null, AND: [customerScopeWhere(user)] },
     include: {
       devices: { include: { brand: true, model: true, deviceType: true }, orderBy: { createdAt: "desc" } },
       jobCards: {
@@ -421,4 +456,85 @@ export async function getCustomer(user: CurrentUser, id: string) {
     },
   });
   return c;
+}
+
+// ---------------------------------------------------------------- the shelf
+
+const PRIORITY_ORDER = { URGENT: 0, HIGH: 1, NORMAL: 2, LOW: 3 } as const;
+const deviceName = (d: {
+  modelText: string | null;
+  brand: { name: string } | null;
+  model: { name: string } | null;
+  deviceType: { name: string };
+}) => [d.brand?.name, d.model?.name ?? d.modelText].filter(Boolean).join(" ") || d.deviceType.name;
+const deviceSelect = {
+  select: {
+    modelText: true,
+    brand: { select: { name: true } },
+    model: { select: { name: true } },
+    deviceType: { select: { name: true } },
+  },
+} as const;
+
+/** Open jobs with no engineer, in the branches where the user may take jobs. Most urgent, then oldest, first. */
+export async function listShelf(user: CurrentUser, activeBranchId: string | null) {
+  const c = branchConstraint(user.access, "jobcards.self_assign", activeBranchId);
+  const rows = await db.jobCard.findMany({
+    where: {
+      organizationId: user.organizationId,
+      deletedAt: null,
+      assignedEngineerId: null,
+      status: { systemKey: { in: OPEN_KEYS } },
+      ...branchWhere(c),
+    },
+    include: {
+      device: deviceSelect,
+      status: { select: { name: true, color: true } },
+      branch: { select: { code: true } },
+    },
+    orderBy: { receivedAt: "asc" },
+    take: 200,
+  });
+  return rows
+    .map((j) => ({
+      id: j.id,
+      jobNo: j.jobNo,
+      branchCode: j.branch.code,
+      device: deviceName(j.device),
+      problem: j.problemReported,
+      priority: j.priority,
+      status: j.status.name,
+      tone: j.status.color,
+      receivedAt: j.receivedAt.toISOString(),
+      estimatedAt: j.estimatedAt?.toISOString() ?? null,
+      isWarrantyJob: j.isWarrantyJob,
+    }))
+    .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
+}
+export type ShelfRow = Awaited<ReturnType<typeof listShelf>>[number];
+
+/** An engineer's own open jobs (dashboard). */
+export async function myOpenJobs(user: CurrentUser) {
+  const rows = await db.jobCard.findMany({
+    where: {
+      organizationId: user.organizationId,
+      deletedAt: null,
+      assignedEngineerId: user.id,
+      status: { systemKey: { in: OPEN_KEYS } },
+    },
+    include: { device: deviceSelect, status: { select: { name: true } } },
+    orderBy: [{ estimatedAt: "asc" }, { receivedAt: "asc" }],
+    take: 50,
+  });
+  return rows
+    .map((j) => ({
+      id: j.id,
+      jobNo: j.jobNo,
+      device: deviceName(j.device),
+      status: j.status.name,
+      priority: j.priority,
+      estimatedAt: j.estimatedAt?.toISOString() ?? null,
+      overdue: !!j.estimatedAt && j.estimatedAt.getTime() < Date.now(),
+    }))
+    .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
 }

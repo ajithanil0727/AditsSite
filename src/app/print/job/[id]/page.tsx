@@ -44,7 +44,7 @@ export default async function PrintJobPage(props: PageProps<"/print/job/[id]">) 
         <div>
           <div className="text-xs font-medium text-muted-foreground uppercase">Customer</div>
           <div className="font-semibold">{job.customer.name}</div>
-          <div>{job.customer.phone}</div>
+          {job.customer.phone && <div>{job.customer.phone}</div>}
         </div>
         <div>
           <div className="text-xs font-medium text-muted-foreground uppercase">Device</div>

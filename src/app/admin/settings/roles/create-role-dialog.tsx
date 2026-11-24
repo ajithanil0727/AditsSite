@@ -7,7 +7,15 @@ import type { z } from "zod";
 import { handleActionResult } from "@/components/forms/action-helpers";
 import { SelectField, TextField } from "@/components/forms/fields";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { FieldGroup } from "@/components/ui/field";
 import { createRoleAction } from "@/modules/roles/roles.actions";
 import { createRoleSchema, type CreateRoleInput } from "@/modules/roles/roles.schemas";
@@ -40,6 +48,10 @@ export function CreateRoleDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New role</DialogTitle>
+          <DialogDescription>
+            Name the role, then choose where its ticks start: blank, or a copy of an existing role. On the next screen
+            you tick exactly what this role can do.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} noValidate>
           <FieldGroup>
@@ -48,8 +60,8 @@ export function CreateRoleDialog({
             <SelectField
               control={form.control}
               name="copyFromRoleId"
-              label="Start from"
-              allowNone="No permissions"
+              label="Start with"
+              allowNone="Nothing ticked (choose everything yourself)"
               options={roles.map((r) => ({ value: r.id, label: `Copy of ${r.name}` }))}
             />
           </FieldGroup>

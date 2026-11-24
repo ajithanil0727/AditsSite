@@ -28,9 +28,13 @@ export async function notify(
       channel: "EMAIL",
       to: u.email,
       subject: message.title.slice(0, 150),
-      body: `${message.body}${message.link ? `
+      body: `${message.body}${
+        message.link
+          ? `
 
-Open: ${absoluteUrl(message.link)}` : ""}
+Open: ${absoluteUrl(message.link)}`
+          : ""
+      }
 
 You get this because "Email me my alerts" is on in My account.`,
       templateKey: "staff_alert",

@@ -92,6 +92,7 @@ export const PERMISSION_MODULES = {
       create: "Create (intake)",
       update: "Edit",
       assign: "Assign engineer",
+      self_assign: "Take jobs from the shelf",
       change_status: "Change status",
       qc: "QC",
       deliver: "Deliver",
@@ -103,6 +104,7 @@ export const PERMISSION_MODULES = {
       export: "Export",
     },
   },
+  customers: { label: "Service customers", actions: { view: "View customers and phone numbers" } },
   quotations: { label: "Quotations", actions: { create: "Create", record_decision: "Record customer decision" } },
   part_requests: { label: "Part requests", actions: { create: "Request", issue: "Issue" } },
   invoices: {

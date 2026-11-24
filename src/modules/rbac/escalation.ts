@@ -30,6 +30,17 @@ export function canManageProtected(actor: Access): boolean {
   return actor.permissions.has("users.manage_protected");
 }
 
+/**
+ * Super Admin accounts and roles (anything granting users.manage_protected) are invisible to everyone else
+ * (owners decided 2026-11-24: the super admin handles the system and isn't part of the business's staff list).
+ * Prisma `where` fragments; pure objects so this module stays importable anywhere.
+ */
+export const SUPER_ADMIN_ROLE_WHERE = {
+  permissions: { some: { permission: { key: "users.manage_protected" } } },
+} as const;
+export const NOT_SUPER_ADMIN_USER_WHERE = { NOT: { roles: { some: { role: SUPER_ADMIN_ROLE_WHERE } } } } as const;
+export const NOT_SUPER_ADMIN_ROLE_WHERE = { NOT: SUPER_ADMIN_ROLE_WHERE } as const;
+
 /** Error message if the actor would add or remove a protected role, else null. */
 export function protectedRoleChangeProblem(
   actor: Access,

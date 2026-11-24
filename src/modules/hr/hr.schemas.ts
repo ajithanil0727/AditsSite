@@ -87,8 +87,10 @@ export const employeeSchema = z
       .transform((v) => v || null),
   })
   .superRefine((v, ctx) => {
-    if (v.status === "EXITED" && !v.exitDate) ctx.addIssue({ code: "custom", path: ["exitDate"], message: "Enter the last working day" });
-    if (v.exitDate && v.exitDate < v.joinDate) ctx.addIssue({ code: "custom", path: ["exitDate"], message: "Can't be before joining" });
+    if (v.status === "EXITED" && !v.exitDate)
+      ctx.addIssue({ code: "custom", path: ["exitDate"], message: "Enter the last working day" });
+    if (v.exitDate && v.exitDate < v.joinDate)
+      ctx.addIssue({ code: "custom", path: ["exitDate"], message: "Can't be before joining" });
   });
 export type EmployeeInput = z.input<typeof employeeSchema>;
 
@@ -151,7 +153,10 @@ export const advanceSchema = z
     moneyAccountId: z.string().min(1, "Select the account it's paid from"),
     note: optText(200),
   })
-  .refine((v) => v.monthlyRecovery <= v.amount, { path: ["monthlyRecovery"], message: "Can't be more than the advance" });
+  .refine((v) => v.monthlyRecovery <= v.amount, {
+    path: ["monthlyRecovery"],
+    message: "Can't be more than the advance",
+  });
 export type AdvanceInput = z.input<typeof advanceSchema>;
 
 export const incentiveSchema = z.object({
@@ -177,4 +182,17 @@ export const payrollPaySchema = z.object({
 });
 export type PayrollPayInput = z.input<typeof payrollPaySchema>;
 
-export const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+export const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];

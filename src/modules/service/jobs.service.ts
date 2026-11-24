@@ -41,8 +41,20 @@ import {
   turnaroundMinutes,
   underWarranty,
 } from "./workflow";
+import { announceAssigned, announceOnShelf } from "./shelf.service";
 
 type Job = Awaited<ReturnType<typeof loadJob>>;
+
+const deviceForAlert = (tx: Tx, deviceId: string) =>
+  tx.device.findUniqueOrThrow({
+    where: { id: deviceId },
+    select: {
+      modelText: true,
+      brand: { select: { name: true } },
+      model: { select: { name: true } },
+      deviceType: { select: { name: true } },
+    },
+  });
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -322,6 +334,11 @@ export async function intake(ctx: ActionContext, input: z.output<typeof intakeSc
       label: `Job card ${jobNo} opened`,
     });
 
+    // Alerts: no engineer → it's on the shelf for the branch's engineers; engineer picked → tell them.
+    const withDevice = { ...job, device: await deviceForAlert(tx, device.id) };
+    if (job.assignedEngineerId) await announceAssigned(tx, withDevice, job.assignedEngineerId, ctx.user.id);
+    else await announceOnShelf(tx, withDevice);
+
     if (input.advanceAmount && input.advanceAmount > 0) {
       const loaded = await loadJob(tx, ctx, job.id, "jobcards.create");
       await recordPaymentTx(tx, ctx, loaded, {
@@ -384,6 +401,11 @@ export async function assignJob(ctx: ActionContext, input: z.output<typeof assig
       where: { id: job.id },
       data: { assignedEngineerId: input.engineerId, priority: input.priority },
     });
+    if (input.engineerId !== job.assignedEngineerId) {
+      const withDevice = { ...job, device: await deviceForAlert(tx, job.deviceId) };
+      if (input.engineerId) await announceAssigned(tx, withDevice, input.engineerId, ctx.user.id);
+      else await announceOnShelf(tx, withDevice, { returned: true });
+    }
     await writeAudit(tx, ctx.actor, {
       action: "UPDATE",
       entityType: "JobCard",

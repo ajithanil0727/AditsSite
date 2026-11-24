@@ -10,9 +10,10 @@ import {
   SendIcon,
   Trash2Icon,
   UserCogIcon,
+  Undo2Icon,
 } from "lucide-react";
 import { Controller, useFieldArray, useWatch, type Control } from "react-hook-form";
-import type { z } from "zod";
+import { z } from "zod";
 import { ConfirmAction } from "@/components/forms/confirm-action";
 import { SelectField, SwitchField, TextField, TextareaField } from "@/components/forms/fields";
 import { FormDialog } from "@/components/forms/form-dialog";
@@ -24,6 +25,7 @@ import { formatINR } from "@/lib/format";
 import type { JobDetail } from "@/modules/service/jobs.queries";
 import {
   assignJobAction,
+  returnJobAction,
   cancelJobAction,
   changeStatusAction,
   createInvoiceAction,
@@ -184,6 +186,8 @@ function QuoteLines({
   );
 }
 
+const returnSchema = z.object({ id: z.string().min(1), reason: z.string().trim().max(200).optional().nullable() });
+
 export function JobActions({
   jobId,
   can,
@@ -235,6 +239,31 @@ export function JobActions({
               <TextareaField control={form.control} name="diagnosis" label="Diagnosis / findings" rows={3} />
               <TextField control={form.control} name="note" label="Note for the timeline" />
             </>
+          )}
+        </FormDialog>
+      )}
+      {can.returnToShelf && (
+        <FormDialog
+          trigger={
+            <Button variant="outline">
+              <Undo2Icon /> Return to shelf
+            </Button>
+          }
+          title="Return this job to the shelf?"
+          description="It becomes unassigned so another engineer can take it. The service manager and the branch's engineers are told."
+          schema={returnSchema}
+          defaultValues={{ id: jobId, reason: "" }}
+          action={returnJobAction}
+          submitLabel="Return to shelf"
+          successMessage="Back on the shelf"
+        >
+          {(form) => (
+            <TextField
+              control={form.control}
+              name="reason"
+              label="Why? (optional)"
+              placeholder="Needs a board-level specialist"
+            />
           )}
         </FormDialog>
       )}

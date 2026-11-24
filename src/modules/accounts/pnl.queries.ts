@@ -87,14 +87,24 @@ export async function branchFigures(orgId: string, branchIds: string[], from: st
 
   // Salaries: payroll months whose last day falls in the period (finalised or paid runs).
   const months: { year: number; month: number }[] = [];
-  for (let d = new Date(dateOnly(from).getTime()); d <= dateOnly(to); d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1))) {
+  for (
+    let d = new Date(dateOnly(from).getTime());
+    d <= dateOnly(to);
+    d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1))
+  ) {
     const monthEnd = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
-    if (monthEnd >= dateOnly(from) && monthEnd <= dateOnly(to)) months.push({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 });
+    if (monthEnd >= dateOnly(from) && monthEnd <= dateOnly(to))
+      months.push({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 });
   }
   const payroll = months.length
     ? await db.payslip.findMany({
         where: {
-          payrollRun: { organizationId: orgId, branchId: inBranches, status: { in: ["FINALIZED", "PAID"] }, OR: months },
+          payrollRun: {
+            organizationId: orgId,
+            branchId: inBranches,
+            status: { in: ["FINALIZED", "PAID"] },
+            OR: months,
+          },
         },
         select: { grossEarnings: true, lopAmount: true, incentives: true, payrollRun: { select: { branchId: true } } },
       })
@@ -157,7 +167,12 @@ export async function branchFigures(orgId: string, branchIds: string[], from: st
       stockAdjustments: -stockValue("ADJUSTMENT_OUT"),
       salaries: payroll
         .filter((s) => s.payrollRun.branchId === b.id)
-        .reduce((a, s) => a + salaryCost({ grossEarnings: p(s.grossEarnings), lopAmount: p(s.lopAmount), incentives: p(s.incentives) }), 0),
+        .reduce(
+          (a, s) =>
+            a +
+            salaryCost({ grossEarnings: p(s.grossEarnings), lopAmount: p(s.lopAmount), incentives: p(s.incentives) }),
+          0,
+        ),
       expenses: expenses
         .filter((e) => e.branchId === b.id)
         .map((e) => ({

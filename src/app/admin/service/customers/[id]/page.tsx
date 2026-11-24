@@ -11,7 +11,7 @@ import { getCustomer } from "@/modules/service/jobs.queries";
 export const metadata: Metadata = { title: "Customer" };
 
 export default async function CustomerPage(props: PageProps<"/admin/service/customers/[id]">) {
-  const user = await requirePagePermission("jobcards.view");
+  const user = await requirePagePermission("customers.view");
   const { id } = await props.params;
   const c = await getCustomer(user, id);
   if (!c) notFound();

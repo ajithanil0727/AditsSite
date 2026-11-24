@@ -75,7 +75,17 @@ export function HomeMotion({ children }: { children: React.ReactNode }) {
             q("[data-hscroll]").forEach((section) => {
               const track = section.querySelector<HTMLElement>("[data-hscroll-track]");
               if (!track) return;
-              const distance = () => Math.max(0, track.scrollWidth - (section as HTMLElement).clientWidth + 48);
+              // Scroll until the last tile's right edge lines up with the left edge of the first one
+              // (the content column's gutter). Measured from the untransformed parent, so it stays right
+              // on any screen width and however many steps there are.
+              const column = track.parentElement as HTMLElement;
+              const distance = () => {
+                const gutter =
+                  column.getBoundingClientRect().left -
+                  (section as HTMLElement).getBoundingClientRect().left +
+                  parseFloat(getComputedStyle(column).paddingLeft);
+                return Math.max(0, track.scrollWidth + 2 * gutter - (section as HTMLElement).clientWidth);
+              };
               if (distance() < 40) return;
               gsap.to(track, {
                 x: () => -distance(),
@@ -178,5 +188,10 @@ export function HomeMotion({ children }: { children: React.ReactNode }) {
     { scope },
   );
 
-  return <div ref={scope}>{children}</div>;
+  // data-home-motion: sections that only animate here (e.g. the sideways "steps" row) switch layout with it.
+  return (
+    <div ref={scope} data-home-motion="">
+      {children}
+    </div>
+  );
 }

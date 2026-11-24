@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ALL_PERMISSIONS } from "@/lib/permissions";
 import { requirePagePermission } from "@/modules/auth/current";
 import { can } from "@/modules/rbac/access";
+import { canManageProtected } from "@/modules/rbac/escalation";
 import { listRoles } from "@/modules/roles/roles.service";
 import { CreateRoleDialog } from "./create-role-dialog";
 
@@ -15,7 +16,7 @@ export const metadata: Metadata = { title: "Roles & permissions" };
 
 export default async function RolesPage() {
   const user = await requirePagePermission("roles.view");
-  const roles = await listRoles(user.organizationId);
+  const roles = await listRoles(user.organizationId, canManageProtected(user.access));
   const canManage = can(user.access, "roles.manage");
 
   return (

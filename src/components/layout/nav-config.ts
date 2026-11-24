@@ -3,6 +3,8 @@ import { canAny, type Access } from "@/modules/rbac/access";
 
 /** Icon names are mapped to components in the (client) sidebar. */
 export type NavIcon =
+  | "shelf"
+  | "register"
   | "mail"
   | "search"
   | "reports"
@@ -103,6 +105,12 @@ export const NAV: NavGroup[] = [
       { title: "New admission", href: "/admin/students/new", icon: "admission", permissions: ["students.create"] },
       { title: "Students", href: "/admin/students", icon: "students", permissions: ["students.view"], exact: true },
       { title: "Batches", href: "/admin/batches", icon: "batches", permissions: ["batches.view"] },
+      {
+        title: "Attendance register",
+        href: "/admin/attendance-register",
+        icon: "register",
+        permissions: ["student_attendance.view"],
+      },
       { title: "Courses", href: "/admin/courses", icon: "courses", permissions: ["courses.view"] },
       { title: "Certificates", href: "/admin/certificates", icon: "certificates", permissions: ["certificates.view"] },
     ],
@@ -138,7 +146,8 @@ export const NAV: NavGroup[] = [
     items: [
       { title: "New intake", href: "/admin/service/intake", icon: "intake", permissions: ["jobcards.create"] },
       { title: "Job cards", href: "/admin/service/jobs", icon: "wrench", permissions: ["jobcards.view"] },
-      { title: "Customers", href: "/admin/service/customers", icon: "customers", permissions: ["jobcards.view"] },
+      { title: "Shelf", href: "/admin/service/shelf", icon: "shelf", permissions: ["jobcards.self_assign"] },
+      { title: "Customers", href: "/admin/service/customers", icon: "customers", permissions: ["customers.view"] },
       { title: "Invoices", href: "/admin/invoices", icon: "invoice", permissions: ["invoices.view"] },
     ],
   },
@@ -188,6 +197,13 @@ export const NAV: NavGroup[] = [
         href: "/admin/hr/attendance",
         icon: "staffAttendance",
         permissions: ["hr_attendance.view"],
+        exact: true,
+      },
+      {
+        title: "Attendance register",
+        href: "/admin/hr/attendance-register",
+        icon: "register",
+        permissions: ["hr_attendance.view"],
       },
       { title: "Leave", href: "/admin/hr/leave", icon: "leave", permissions: ["leaves.apply", "leaves.approve"] },
       { title: "Holidays", href: "/admin/hr/holidays", icon: "holidays", permissions: ["hr_attendance.view"] },
@@ -223,7 +239,12 @@ export const NAV: NavGroup[] = [
       { title: "Branches", href: "/admin/settings/branches", icon: "branch", permissions: ["branches.view"] },
       { title: "Number series", href: "/admin/settings/number-series", icon: "hash", permissions: ["settings.view"] },
       { title: "Communications", href: "/admin/settings/communications", icon: "mail", permissions: ["settings.view"] },
-      { title: "Imports", href: "/admin/imports", icon: "imports", permissions: ["students.import", "employees.import", "parts.import"] },
+      {
+        title: "Imports",
+        href: "/admin/imports",
+        icon: "imports",
+        permissions: ["students.import", "employees.import", "parts.import"],
+      },
       { title: "Master data", href: "/admin/settings/masters", icon: "database", permissions: MASTER_PERMISSIONS },
       { title: "Users", href: "/admin/settings/users", icon: "users", permissions: ["users.view"] },
       { title: "Roles & permissions", href: "/admin/settings/roles", icon: "shield", permissions: ["roles.view"] },
@@ -332,6 +353,8 @@ export const SEGMENT_LABELS: Record<string, string> = {
   drives: "Drives",
   stats: "Placement stats",
   communications: "Communications",
+  shelf: "Shelf",
+  "attendance-register": "Attendance register",
   search: "Search",
   reports: "Reports",
   imports: "Imports",

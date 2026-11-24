@@ -117,7 +117,11 @@ export async function trackRepair(input: { jobNo: string; phone: string }): Prom
             status: job.quotations[0].status,
             total: Number(job.quotations[0].total),
             validUntil: job.quotations[0].validUntil?.toISOString() ?? null,
-            items: job.quotations[0].items.map((i) => ({ description: i.description, qty: Number(i.qty), amount: Number(i.amount) })),
+            items: job.quotations[0].items.map((i) => ({
+              description: i.description,
+              qty: Number(i.qty),
+              amount: Number(i.amount),
+            })),
           }
         : null,
       invoice: inv ? { number: inv.invoiceNo, url: invoiceLink(inv.id) } : null,

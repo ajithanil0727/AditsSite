@@ -33,9 +33,13 @@ const DAY = 86_400_000;
 const d = (ymd: string) => new Date(`${ymd}T00:00:00.000Z`);
 const ymd = (x: Date | null | undefined) => (x ? x.toISOString().slice(0, 10) : null);
 /** IST calendar day range → UTC instants for DateTime (timestamp) columns. */
-const istRange = (f: Filters) => ({ gte: new Date(d(f.from).getTime() - 330 * 60_000), lt: new Date(d(f.to).getTime() + DAY - 330 * 60_000) });
+const istRange = (f: Filters) => ({
+  gte: new Date(d(f.from).getTime() - 330 * 60_000),
+  lt: new Date(d(f.to).getTime() + DAY - 330 * 60_000),
+});
 const istDay = (x: Date) => new Date(x.getTime() + 330 * 60_000).toISOString().slice(0, 10);
-const branchIn = (c: BranchConstraint, field = "branchId") => (c.branchIds === null ? {} : { [field]: { in: c.branchIds } });
+const branchIn = (c: BranchConstraint, field = "branchId") =>
+  c.branchIds === null ? {} : { [field]: { in: c.branchIds } };
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export const REPORTS: ReportDef[] = [
@@ -136,7 +140,11 @@ export const REPORTS: ReportDef[] = [
           dueDate: { lte: d(f.to) },
           enrollment: { organizationId: orgId, deletedAt: null, status: { not: "DROPPED" }, ...branchIn(c) },
         },
-        include: { enrollment: { include: { student: true, course: { select: { name: true } }, branch: { select: { code: true } } } } },
+        include: {
+          enrollment: {
+            include: { student: true, course: { select: { name: true } }, branch: { select: { code: true } } },
+          },
+        },
         orderBy: [{ dueDate: "asc" }],
       });
       return rows.map((i) => ({
@@ -210,10 +218,22 @@ export const REPORTS: ReportDef[] = [
     ],
     run: async ({ orgId, userId, c, f }) => {
       const rows = await db.jobCard.findMany({
-        where: { organizationId: orgId, deletedAt: null, receivedAt: istRange(f), ...branchIn(c), ...(c.ownOnly ? { assignedEngineerId: userId } : {}) },
+        where: {
+          organizationId: orgId,
+          deletedAt: null,
+          receivedAt: istRange(f),
+          ...branchIn(c),
+          ...(c.ownOnly ? { assignedEngineerId: userId } : {}),
+        },
         include: {
           customer: { select: { name: true } },
-          device: { include: { brand: { select: { name: true } }, model: { select: { name: true } }, deviceType: { select: { name: true } } } },
+          device: {
+            include: {
+              brand: { select: { name: true } },
+              model: { select: { name: true } },
+              deviceType: { select: { name: true } },
+            },
+          },
           assignedEngineer: { select: { name: true } },
           status: { select: { name: true } },
         },
@@ -223,7 +243,9 @@ export const REPORTS: ReportDef[] = [
         jobNo: j.jobNo,
         received: istDay(j.receivedAt),
         customer: j.customer.name,
-        device: [j.device.brand?.name, j.device.model?.name ?? j.device.modelText].filter(Boolean).join(" ") || j.device.deviceType.name,
+        device:
+          [j.device.brand?.name, j.device.model?.name ?? j.device.modelText].filter(Boolean).join(" ") ||
+          j.device.deviceType.name,
         engineer: j.assignedEngineer?.name ?? "—",
         status: j.status.name,
         delivered: j.deliveredAt ? istDay(j.deliveredAt) : null,
@@ -248,9 +270,17 @@ export const REPORTS: ReportDef[] = [
       { key: "comebackPct", label: "Comeback %", type: "percent" },
     ],
     run: async ({ orgId, userId, c, f }) => {
-      const base = { organizationId: orgId, deletedAt: null, assignedEngineerId: c.ownOnly ? userId : { not: null }, ...branchIn(c) };
+      const base = {
+        organizationId: orgId,
+        deletedAt: null,
+        assignedEngineerId: c.ownOnly ? userId : { not: null },
+        ...branchIn(c),
+      };
       const [delivered, invoices, comebacks] = await Promise.all([
-        db.jobCard.findMany({ where: { ...base, deliveredAt: istRange(f) }, select: { assignedEngineerId: true, tatMinutes: true } }),
+        db.jobCard.findMany({
+          where: { ...base, deliveredAt: istRange(f) },
+          select: { assignedEngineerId: true, tatMinutes: true },
+        }),
         db.invoice.findMany({
           where: {
             organizationId: orgId,
@@ -291,7 +321,9 @@ export const REPORTS: ReportDef[] = [
             delivered: mine.length,
             avgTat: tats.length ? round2(tats.reduce((a, t) => a + t, 0) / tats.length / 1440) : null,
             revenue: round2(
-              invoices.filter((i) => i.jobCard!.assignedEngineerId === u.id).reduce((a, i) => a + Number(i.subtotal) - Number(i.discountTotal), 0),
+              invoices
+                .filter((i) => i.jobCard!.assignedEngineerId === u.id)
+                .reduce((a, i) => a + Number(i.subtotal) - Number(i.discountTotal), 0),
             ),
             comebacks: back,
             comebackPct: mine.length ? Math.round((back / mine.length) * 1000) / 10 : null,
@@ -319,8 +351,15 @@ export const REPORTS: ReportDef[] = [
     ],
     run: async ({ orgId, c }) => {
       const rows = await db.stock.findMany({
-        where: { ...branchIn(c), part: { organizationId: orgId, deletedAt: null }, OR: [{ qty: { gt: 0 } }, { reorderLevel: { gt: 0 } }] },
-        include: { part: { select: { sku: true, name: true, reorderLevel: true } }, branch: { select: { code: true } } },
+        where: {
+          ...branchIn(c),
+          part: { organizationId: orgId, deletedAt: null },
+          OR: [{ qty: { gt: 0 } }, { reorderLevel: { gt: 0 } }],
+        },
+        include: {
+          part: { select: { sku: true, name: true, reorderLevel: true } },
+          branch: { select: { code: true } },
+        },
         orderBy: [{ part: { name: "asc" } }],
       });
       return rows.map((s) => {
@@ -359,7 +398,10 @@ export const REPORTS: ReportDef[] = [
       const rows = await db.placementOffer.findMany({
         where: {
           offeredAt: { gte: d(f.from), lte: d(f.to) },
-          application: { drive: { organizationId: orgId }, ...(c.branchIds === null ? {} : { enrollment: { branchId: { in: c.branchIds } } }) },
+          application: {
+            drive: { organizationId: orgId },
+            ...(c.branchIds === null ? {} : { enrollment: { branchId: { in: c.branchIds } } }),
+          },
         },
         include: {
           application: {
@@ -399,7 +441,8 @@ export function defaultFilters(): Filters {
 
 export function parseFilters(sp: Record<string, string | string[] | undefined>): Filters {
   const def = defaultFilters();
-  const pick = (k: string) => (typeof sp[k] === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp[k] as string) ? (sp[k] as string) : null);
+  const pick = (k: string) =>
+    typeof sp[k] === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp[k] as string) ? (sp[k] as string) : null;
   let from = pick("from") ?? def.from;
   let to = pick("to") ?? def.to;
   if (from > to) [from, to] = [to, from];
@@ -415,6 +458,9 @@ export async function runReport(user: CurrentUser, report: ReportDef, f: Filters
   const rows = await report.run({ orgId: user.organizationId, userId: user.id, c, f });
   const totals: Row = {};
   for (const col of report.columns)
-    if (col.total) totals[col.key] = round2(rows.reduce((a, r) => a + (typeof r[col.key] === "number" ? (r[col.key] as number) : 0), 0));
+    if (col.total)
+      totals[col.key] = round2(
+        rows.reduce((a, r) => a + (typeof r[col.key] === "number" ? (r[col.key] as number) : 0), 0),
+      );
   return { rows, totals };
 }

@@ -237,14 +237,19 @@ function Steps({ c }: { c: C }) {
       <Container>
         <SectionHeading title={c.title} subtitle={c.subtitle} />
       </Container>
-      {/* Vertical list on phones; on desktop the home page pins this row and scrolls it sideways. */}
+      {/* Phones: one column. Other pages: all steps in one row on desktop (up to 5, then it wraps). Home page desktop (inside
+          HomeMotion): one long row that's pinned and scrolled sideways. */}
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <ol data-hscroll-track className="grid gap-4 lg:flex lg:w-max lg:gap-6">
+        <ol
+          data-hscroll-track
+          style={{ "--steps": Math.min(items.length, 5) } as React.CSSProperties}
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[repeat(var(--steps),minmax(0,1fr))] lg:gap-6 lg:in-data-home-motion:flex lg:in-data-home-motion:w-max"
+        >
           {items.map((s, i) => (
             <li
               key={i}
               data-reveal
-              className="relative flex gap-4 rounded-3xl border bg-card p-6 shadow-sm lg:w-80 lg:flex-col"
+              className="relative flex gap-4 rounded-3xl border bg-card p-6 shadow-sm lg:flex-col lg:in-data-home-motion:w-80"
             >
               <span
                 className={cn(
@@ -523,9 +528,13 @@ export function Branches({ title, subtitle, data }: { title?: unknown; subtitle?
     <section className="py-16 sm:py-20">
       <Container>
         <SectionHeading title={title} subtitle={subtitle} />
-        <div data-stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Centred rows: 2 branches sit in the middle under the heading; more wrap into rows of 3, also centred. */}
+        <div data-stagger className="flex flex-wrap justify-center gap-5">
           {data.branches.map((b) => (
-            <div key={b.id} className="flex flex-col rounded-3xl border bg-card p-6 shadow-sm">
+            <div
+              key={b.id}
+              className="flex w-full flex-col rounded-3xl border bg-card p-6 shadow-sm sm:w-[calc(50%-0.625rem)] lg:w-[calc((100%-2.5rem)/3)]"
+            >
               <div className="flex items-start gap-3">
                 <span className="relative mt-1 flex size-3 shrink-0">
                   <span className="pin-pulse absolute inset-0 rounded-full bg-primary/50" />

@@ -57,7 +57,12 @@ export default async function ReportPage(props: PageProps<"/admin/reports/[key]"
           <>
             <label className="grid gap-1 text-sm">
               From
-              <input type="date" name="from" defaultValue={f.from} className="h-9 rounded-md border bg-background px-2" />
+              <input
+                type="date"
+                name="from"
+                defaultValue={f.from}
+                className="h-9 rounded-md border bg-background px-2"
+              />
             </label>
             <label className="grid gap-1 text-sm">
               To

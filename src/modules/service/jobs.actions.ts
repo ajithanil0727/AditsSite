@@ -6,6 +6,7 @@ import { z } from "zod";
 import { indianPhone } from "@/lib/format";
 import { defineAction } from "@/modules/rbac/action";
 import { findComebackCandidates, lookupCustomerByPhone } from "./jobs.queries";
+import { returnJob, takeJob } from "./shelf.service";
 import {
   addLabour,
   addNote,
@@ -185,3 +186,30 @@ export async function uploadJobPhotoAction(formData: FormData) {
     return { ok: false as const, error: "Upload failed. Please try again." };
   }
 }
+
+// ---------------------------------------------------------------- the shelf (engineers take / return jobs)
+
+export const takeJobAction = defineAction(
+  { permission: "jobcards.self_assign", schema: z.object({ id: z.string().min(1) }) },
+  async (i, ctx) => done(await takeJob(ctx, i.id)),
+);
+export const returnJobAction = defineAction(
+  {
+    permission: "jobcards.self_assign",
+    schema: z.object({
+      id: z.string().min(1),
+      reason: z
+        .string()
+        .trim()
+        .max(200)
+        .optional()
+        .nullable()
+        .transform((v) => v || null),
+    }),
+  },
+  async (i, ctx) => {
+    // The job is no longer theirs, so they can't stay on its page: go to the shelf with a confirmation.
+    const jobNo = await returnJob(ctx, i.id, i.reason);
+    redirect(`/admin/service/shelf?returned=${encodeURIComponent(jobNo)}`);
+  },
+);

@@ -12,7 +12,16 @@ const MAX_ATTEMPTS = 3;
 
 export async function queueMessage(
   tx: Tx | typeof db,
-  m: { organizationId: string; channel: Channel; to: string; subject?: string | null; body: string; templateKey?: string; entityType?: string; entityId?: string },
+  m: {
+    organizationId: string;
+    channel: Channel;
+    to: string;
+    subject?: string | null;
+    body: string;
+    templateKey?: string;
+    entityType?: string;
+    entityId?: string;
+  },
 ) {
   await tx.messageLog.create({
     data: {
@@ -55,7 +64,10 @@ export async function flushOutbox(limit = 25): Promise<{ sent: number; failed: n
       const final = e instanceof NotConfiguredError || m.attempts >= MAX_ATTEMPTS;
       await db.messageLog.update({
         where: { id },
-        data: { status: final ? "FAILED" : "QUEUED", error: (e instanceof Error ? e.message : String(e)).slice(0, 500) },
+        data: {
+          status: final ? "FAILED" : "QUEUED",
+          error: (e instanceof Error ? e.message : String(e)).slice(0, 500),
+        },
       });
       if (final) failed++;
     }

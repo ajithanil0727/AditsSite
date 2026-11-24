@@ -52,6 +52,28 @@ const IMAGES = [
   { file: "card3.webp", type: "image/webp", alt: "Smartphone and laptop repair", folder: "courses" },
 ] as const;
 
+/** Same storage as the app: local disk, or the S3/R2 bucket when STORAGE_DRIVER=s3 (e.g. a hosted test site). */
+async function putFile(key: string, data: Buffer, contentType: string) {
+  if (process.env.STORAGE_DRIVER === "s3") {
+    const { PutObjectCommand, S3Client } = await import("@aws-sdk/client-s3");
+    const { S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_ENDPOINT, S3_REGION } = process.env;
+    if (!S3_BUCKET || !S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY)
+      throw new Error("STORAGE_DRIVER=s3 needs S3_BUCKET and S3 keys.");
+    const client = new S3Client({
+      region: S3_REGION || "auto",
+      endpoint: S3_ENDPOINT || undefined,
+      forcePathStyle: !!S3_ENDPOINT,
+      credentials: { accessKeyId: S3_ACCESS_KEY_ID, secretAccessKey: S3_SECRET_ACCESS_KEY },
+    });
+    await client.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: key, Body: data, ContentType: contentType }));
+    return;
+  }
+  const root = path.resolve(process.env.STORAGE_LOCAL_DIR ?? "./storage");
+  const file = path.resolve(root, key);
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(file, data);
+}
+
 async function upload(db: PrismaClient, orgId: string, img: (typeof IMAGES)[number]) {
   const existing = await db.fileAsset.findFirst({
     where: { organizationId: orgId, originalName: `adits-${img.file}`, deletedAt: null },
@@ -60,10 +82,7 @@ async function upload(db: PrismaClient, orgId: string, img: (typeof IMAGES)[numb
   const data = await readFile(path.join(ASSETS, img.file));
   const ext = img.file.split(".").pop();
   const key = `${orgId}/website/${randomUUID()}.${ext}`;
-  const root = path.resolve(process.env.STORAGE_LOCAL_DIR ?? "./storage");
-  const file = path.resolve(root, key);
-  await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, data);
+  await putFile(key, data, img.type);
   const meta = await import("sharp").then((s) => s.default(data).metadata());
   const asset = await db.fileAsset.create({
     data: {

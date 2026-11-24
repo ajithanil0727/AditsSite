@@ -25,6 +25,7 @@ const OPERATIONAL = [
   "certificates.*",
   "fees.*",
   "jobcards.*",
+  "customers.view",
   "quotations.*",
   "part_requests.*",
   "invoices.*",
@@ -59,7 +60,8 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     name: "Owner / Partner",
     description: "Co-owners: run the whole business. Only the super admin adds owners.",
     defaultScope: "ALL_BRANCHES",
-    permissions: ALL_PERMISSION_KEYS.filter((k) => k !== "users.manage_protected"),
+    // Audit log: super admin only (owners ask the super admin), 2026-11-24.
+    permissions: ALL_PERMISSION_KEYS.filter((k) => k !== "users.manage_protected" && k !== "audit.view"),
     discountLimitPercent: 100,
     discountLimitAmount: 10_000_000,
     isProtected: true,
@@ -75,7 +77,8 @@ export const DEFAULT_ROLES: DefaultRole[] = [
         k !== "jobcards.view_unlock_code" &&
         k !== "certificates.issue" && // owners + branch managers only (Phase 7 decision)
         k !== "certificates.revoke" &&
-        k !== "users.manage_protected",
+        k !== "users.manage_protected" &&
+        k !== "audit.view", // super admin only
     ),
     discountLimitPercent: 100,
     discountLimitAmount: 10_000_000,
@@ -97,6 +100,7 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     description: "Fees, invoices, expenses, accounts, payroll.",
     defaultScope: "ASSIGNED_BRANCHES",
     permissions: expandPermissions([
+      "customers.view", // invoices and customer dues
       "dashboard.view",
       "students.view",
       "fees.*",
@@ -139,6 +143,7 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     description: "Enquiries, admissions, walk-in service intake.",
     defaultScope: "ASSIGNED_BRANCHES",
     permissions: expandPermissions([
+      "customers.view", // repair intake and calls
       "dashboard.view",
       "leads.*",
       "courses.view",
@@ -196,6 +201,7 @@ export const DEFAULT_ROLES: DefaultRole[] = [
     permissions: expandPermissions([
       "dashboard.view",
       "jobcards.*",
+      "customers.view",
       "quotations.*",
       "part_requests.*",
       "invoices.view",
@@ -218,6 +224,7 @@ export const DEFAULT_ROLES: DefaultRole[] = [
       "jobcards.view",
       "jobcards.update",
       "jobcards.change_status",
+      "jobcards.self_assign", // take jobs from the shelf; no customer phone numbers
       "part_requests.create",
       "quotations.create",
       "leaves.apply",

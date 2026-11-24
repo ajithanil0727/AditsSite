@@ -17,9 +17,15 @@ const TONE = { QUEUED: "sky", SENT: "mint", FAILED: "danger" } as const;
 export default async function CommunicationsPage() {
   const user = await requirePagePermission("settings.view");
   const [log, counts, optedIn] = await Promise.all([
-    db.messageLog.findMany({ where: { organizationId: user.organizationId }, orderBy: { createdAt: "desc" }, take: 50 }),
+    db.messageLog.findMany({
+      where: { organizationId: user.organizationId },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
     db.messageLog.groupBy({ by: ["status"], where: { organizationId: user.organizationId }, _count: true }),
-    db.user.count({ where: { organizationId: user.organizationId, emailAlerts: true, isActive: true, deletedAt: null } }),
+    db.user.count({
+      where: { organizationId: user.organizationId, emailAlerts: true, isActive: true, deletedAt: null },
+    }),
   ]);
   const smtp = !!env.SMTP_HOST;
   const cron = !!env.CRON_SECRET && env.CRON_SECRET.length >= 16 && !env.CRON_SECRET.startsWith("change-me");
@@ -35,7 +41,11 @@ export default async function CommunicationsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Email (SMTP)</CardTitle>
-            <CardDescription>{smtp ? `Server ${env.SMTP_HOST}:${env.SMTP_PORT}` : "Not set up. Set SMTP_HOST and the other SMTP_ values on the server (see the deployment guide)."}</CardDescription>
+            <CardDescription>
+              {smtp
+                ? `Server ${env.SMTP_HOST}:${env.SMTP_PORT}`
+                : "Not set up. Set SMTP_HOST and the other SMTP_ values on the server (see the deployment guide)."}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <StatusBadge tone={smtp ? "mint" : "peach"}>{smtp ? "set up" : "not set up"}</StatusBadge>
@@ -44,7 +54,9 @@ export default async function CommunicationsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Background sending</CardTitle>
-            <CardDescription>Emails go out right after each action; a scheduler calling /api/cron/messages retries anything left over.</CardDescription>
+            <CardDescription>
+              Emails go out right after each action; a scheduler calling /api/cron/messages retries anything left over.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <StatusBadge tone={cron ? "mint" : "peach"}>{cron ? "CRON_SECRET set" : "CRON_SECRET not set"}</StatusBadge>

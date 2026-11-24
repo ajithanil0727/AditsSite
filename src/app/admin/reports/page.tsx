@@ -16,14 +16,43 @@ export default async function ReportsPage() {
   if (list.length === 0) redirect("/admin/no-access");
   const groups = [...new Set(list.map((r) => r.group))];
   const extra = [
-    can(user.access, "reports.financial") && { href: "/admin/accounts/pnl", title: "Profit & loss", description: "Branch and combined P&L (Accounts)." },
-    can(user.access, "accounts.view_daybook") && { href: "/admin/accounts/daybook", title: "Day book", description: "Money in and out per account (Accounts)." },
-    can(user.access, "leads.view") && { href: "/admin/leads/report", title: "Enquiry conversion", description: "Enquiries by source and counsellor." },
-    can(user.access, "placements.view") && { href: "/admin/placements/stats", title: "Placement stats", description: "Placement % by branch, course and batch." },
+    can(user.access, "reports.financial") && {
+      href: "/admin/accounts/pnl",
+      title: "Profit & loss",
+      description: "Branch and combined P&L (Accounts).",
+    },
+    can(user.access, "accounts.view_daybook") && {
+      href: "/admin/accounts/daybook",
+      title: "Day book",
+      description: "Money in and out per account (Accounts).",
+    },
+    can(user.access, "leads.view") && {
+      href: "/admin/leads/report",
+      title: "Enquiry conversion",
+      description: "Enquiries by source and counsellor.",
+    },
+    can(user.access, "placements.view") && {
+      href: "/admin/placements/stats",
+      title: "Placement stats",
+      description: "Placement % by branch, course and batch.",
+    },
+    can(user.access, "hr_attendance.view") && {
+      href: "/admin/hr/attendance-register",
+      title: "Staff attendance register",
+      description: "Per branch, per month: every day, leave, loss-of-pay and paid days. Excel and print.",
+    },
+    can(user.access, "student_attendance.view") && {
+      href: "/admin/attendance-register",
+      title: "Student attendance register",
+      description: "Per batch, per month: every class day, totals and %. Excel and print.",
+    },
   ].filter((x): x is { href: string; title: string; description: string } => !!x);
   return (
     <>
-      <PageHeader title="Reports" description="Pick a period and branch, then view, print / save as PDF, or download Excel." />
+      <PageHeader
+        title="Reports"
+        description="Pick a period and branch, then view, print / save as PDF, or download Excel."
+      />
       <div className="space-y-8">
         {groups.map((g) => (
           <section key={g}>
@@ -32,7 +61,11 @@ export default async function ReportsPage() {
               {list
                 .filter((r) => r.group === g)
                 .map((r) => (
-                  <Link key={r.key} href={`/admin/reports/${r.key}`} className="rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+                  <Link
+                    key={r.key}
+                    href={`/admin/reports/${r.key}`}
+                    className="rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  >
                     <Card className="h-full transition-shadow hover:shadow-md">
                       <CardHeader>
                         <CardTitle className="text-base">{r.title}</CardTitle>
@@ -49,7 +82,11 @@ export default async function ReportsPage() {
             <h2 className="mb-3 text-sm font-medium text-muted-foreground">Elsewhere</h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {extra.map((r) => (
-                <Link key={r.href} href={r.href} className="rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+                <Link
+                  key={r.href}
+                  href={r.href}
+                  className="rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                >
                   <Card className="h-full transition-shadow hover:shadow-md">
                     <CardHeader>
                       <CardTitle className="text-base">{r.title}</CardTitle>

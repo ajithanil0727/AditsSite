@@ -8,7 +8,7 @@ import { CustomersTable } from "./customers-table";
 export const metadata: Metadata = { title: "Customers" };
 
 export default async function CustomersPage(props: PageProps<"/admin/service/customers">) {
-  const user = await requirePagePermission("jobcards.view");
+  const user = await requirePagePermission("customers.view");
   const params = parseListParams(await props.searchParams);
   const { rows, total } = await listCustomers(user, params);
   return (

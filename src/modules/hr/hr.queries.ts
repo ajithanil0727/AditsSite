@@ -19,7 +19,9 @@ export async function branchOptions(user: CurrentUser, permission: PermissionKey
     select: { id: true, name: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
-  return rows.filter((b) => canAccessBranch(user.access, permission, b.id)).map((b) => ({ value: b.id, label: b.name }));
+  return rows
+    .filter((b) => canAccessBranch(user.access, permission, b.id))
+    .map((b) => ({ value: b.id, label: b.name }));
 }
 
 export async function employeeFormOptions(user: CurrentUser) {
@@ -29,8 +31,16 @@ export async function employeeFormOptions(user: CurrentUser) {
     db.department.findMany({ where: { organizationId: orgId, isActive: true }, orderBy: { name: "asc" } }),
     db.designation.findMany({ where: { organizationId: orgId, isActive: true }, orderBy: { name: "asc" } }),
     db.shift.findMany({ where: { organizationId: orgId }, orderBy: { name: "asc" } }),
-    db.employee.findMany({ where: { organizationId: orgId, deletedAt: null, status: { not: "EXITED" } }, select: { id: true, name: true, employeeCode: true }, orderBy: { name: "asc" } }),
-    db.user.findMany({ where: { organizationId: orgId, deletedAt: null }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" } }),
+    db.employee.findMany({
+      where: { organizationId: orgId, deletedAt: null, status: { not: "EXITED" } },
+      select: { id: true, name: true, employeeCode: true },
+      orderBy: { name: "asc" },
+    }),
+    db.user.findMany({
+      where: { organizationId: orgId, deletedAt: null },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
   return {
     branches,
@@ -52,7 +62,13 @@ export async function listEmployees(user: CurrentUser, p: ListParams, activeBran
     ...(f.status ? { status: f.status as never } : { status: { not: "EXITED" } }),
     ...(f.department ? { departmentId: f.department } : {}),
     ...(p.q
-      ? { OR: [{ name: { contains: p.q, mode: "insensitive" } }, { employeeCode: { contains: p.q, mode: "insensitive" } }, { phone: { contains: p.q } }] }
+      ? {
+          OR: [
+            { name: { contains: p.q, mode: "insensitive" } },
+            { employeeCode: { contains: p.q, mode: "insensitive" } },
+            { phone: { contains: p.q } },
+          ],
+        }
       : {}),
   };
   const [rows, total] = await Promise.all([
@@ -101,7 +117,11 @@ export async function getEmployee(user: CurrentUser, id: string) {
       user: { select: { email: true } },
       salaryStructures: { orderBy: { effectiveFrom: "desc" }, include: { items: { include: { component: true } } } },
       advances: { orderBy: { givenAt: "desc" } },
-      payslips: { orderBy: [{ payrollRun: { year: "desc" } }, { payrollRun: { month: "desc" } }], take: 24, include: { payrollRun: { select: { year: true, month: true, status: true } } } },
+      payslips: {
+        orderBy: [{ payrollRun: { year: "desc" } }, { payrollRun: { month: "desc" } }],
+        take: 24,
+        include: { payrollRun: { select: { year: true, month: true, status: true } } },
+      },
       leaveRequests: { orderBy: { fromDate: "desc" }, take: 20, include: { leaveType: { select: { name: true } } } },
       incentives: { orderBy: [{ year: "desc" }, { month: "desc" }], take: 20 },
     },
@@ -111,7 +131,11 @@ export async function getEmployee(user: CurrentUser, id: string) {
   const [types, balances, docs] = await Promise.all([
     db.leaveType.findMany({ where: { organizationId: user.organizationId, isActive: true }, orderBy: { name: "asc" } }),
     db.leaveBalance.findMany({ where: { employeeId: e.id, year } }),
-    db.attachment.findMany({ where: { entityType: "Employee", entityId: e.id }, include: { file: { select: { originalName: true } } }, orderBy: { createdAt: "desc" } }),
+    db.attachment.findMany({
+      where: { entityType: "Employee", entityId: e.id },
+      include: { file: { select: { originalName: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
   const sensitive = can(user.access, "employees.view_sensitive");
   const showPay = can(user.access, "payroll.view");
@@ -163,23 +187,71 @@ export async function getEmployee(user: CurrentUser, id: string) {
           from: ymd(s.effectiveFrom)!,
           gross: n(s.monthlyGross),
           notes: s.notes,
-          items: s.items.map((i) => ({ componentId: i.componentId, label: i.component.name, type: i.component.type, amount: n(i.amount) })),
+          items: s.items.map((i) => ({
+            componentId: i.componentId,
+            label: i.component.name,
+            type: i.component.type,
+            amount: n(i.amount),
+          })),
         }))
       : null,
     leave: types.map((t) => {
       const b = balances.find((x) => x.leaveTypeId === t.id);
       const allotted = Number(b?.allotted ?? t.annualQuota);
-      return { id: t.id, name: t.name, isPaid: t.isPaid, allotted, used: Number(b?.used ?? 0), left: allotted - Number(b?.used ?? 0) };
+      return {
+        id: t.id,
+        name: t.name,
+        isPaid: t.isPaid,
+        allotted,
+        used: Number(b?.used ?? 0),
+        left: allotted - Number(b?.used ?? 0),
+      };
     }),
-    leaveRequests: e.leaveRequests.map((r) => ({ id: r.id, type: r.leaveType.name, from: ymd(r.fromDate)!, to: ymd(r.toDate)!, days: Number(r.days), status: r.status, reason: r.reason })),
+    leaveRequests: e.leaveRequests.map((r) => ({
+      id: r.id,
+      type: r.leaveType.name,
+      from: ymd(r.fromDate)!,
+      to: ymd(r.toDate)!,
+      days: Number(r.days),
+      status: r.status,
+      reason: r.reason,
+    })),
     advances: showPay
-      ? e.advances.map((a) => ({ id: a.id, givenAt: ymd(a.givenAt)!, amount: n(a.amount), monthlyRecovery: n(a.monthlyRecovery), recovered: n(a.recoveredAmount), status: a.status, note: a.note }))
+      ? e.advances.map((a) => ({
+          id: a.id,
+          givenAt: ymd(a.givenAt)!,
+          amount: n(a.amount),
+          monthlyRecovery: n(a.monthlyRecovery),
+          recovered: n(a.recoveredAmount),
+          status: a.status,
+          note: a.note,
+        }))
       : null,
     payslips: showPay
-      ? e.payslips.map((s) => ({ id: s.id, year: s.payrollRun.year, month: s.payrollRun.month, status: s.payrollRun.status, net: n(s.netPay), paidAt: ymd(s.paidAt) }))
+      ? e.payslips.map((s) => ({
+          id: s.id,
+          year: s.payrollRun.year,
+          month: s.payrollRun.month,
+          status: s.payrollRun.status,
+          net: n(s.netPay),
+          paidAt: ymd(s.paidAt),
+        }))
       : null,
-    incentives: e.incentives.map((i) => ({ id: i.id, year: i.year, month: i.month, amount: n(i.amount), reason: i.reason, status: i.status })),
-    documents: docs.map((d) => ({ id: d.id, fileId: d.fileId, label: d.label, name: d.file.originalName, at: d.createdAt.toISOString() })),
+    incentives: e.incentives.map((i) => ({
+      id: i.id,
+      year: i.year,
+      month: i.month,
+      amount: n(i.amount),
+      reason: i.reason,
+      status: i.status,
+    })),
+    documents: docs.map((d) => ({
+      id: d.id,
+      fileId: d.fileId,
+      label: d.label,
+      name: d.file.originalName,
+      at: d.createdAt.toISOString(),
+    })),
   };
 }
 export type EmployeeDetail = NonNullable<Awaited<ReturnType<typeof getEmployee>>>;
@@ -190,13 +262,26 @@ export async function attendanceSheet(user: CurrentUser, branchId: string, date:
   const d = dateOnly(date);
   const [staff, marks, holiday, run] = await Promise.all([
     db.employee.findMany({
-      where: { organizationId: user.organizationId, branchId, deletedAt: null, joinDate: { lte: d }, OR: [{ exitDate: null }, { exitDate: { gte: d } }] },
+      where: {
+        organizationId: user.organizationId,
+        branchId,
+        deletedAt: null,
+        joinDate: { lte: d },
+        OR: [{ exitDate: null }, { exitDate: { gte: d } }],
+      },
       select: { id: true, name: true, employeeCode: true, designation: { select: { name: true } } },
       orderBy: { name: "asc" },
     }),
-    db.employeeAttendance.findMany({ where: { date: d, employee: { branchId } }, include: { markedBy: { select: { name: true } } } }),
-    db.holiday.findFirst({ where: { organizationId: user.organizationId, date: d, OR: [{ branchId: null }, { branchId }] } }),
-    db.payrollRun.findFirst({ where: { branchId, year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, status: { in: ["FINALIZED", "PAID"] } } }),
+    db.employeeAttendance.findMany({
+      where: { date: d, employee: { branchId } },
+      include: { markedBy: { select: { name: true } } },
+    }),
+    db.holiday.findFirst({
+      where: { organizationId: user.organizationId, date: d, OR: [{ branchId: null }, { branchId }] },
+    }),
+    db.payrollRun.findFirst({
+      where: { branchId, year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, status: { in: ["FINALIZED", "PAID"] } },
+    }),
   ]);
   return {
     date,
@@ -205,7 +290,15 @@ export async function attendanceSheet(user: CurrentUser, branchId: string, date:
     locked: !!run,
     staff: staff.map((s) => {
       const m = marks.find((x) => x.employeeId === s.id);
-      return { id: s.id, name: s.name, code: s.employeeCode, designation: s.designation?.name ?? null, status: m?.status ?? null, note: m?.note ?? "", markedBy: m?.markedBy?.name ?? null };
+      return {
+        id: s.id,
+        name: s.name,
+        code: s.employeeCode,
+        designation: s.designation?.name ?? null,
+        status: m?.status ?? null,
+        note: m?.note ?? "",
+        markedBy: m?.markedBy?.name ?? null,
+      };
     }),
   };
 }
@@ -223,7 +316,13 @@ export async function listLeave(user: CurrentUser, opts: { status: string | null
     where: { ...where, ...(opts.status ? { status: opts.status as never } : {}) },
     orderBy: [{ status: "asc" }, { fromDate: "desc" }],
     take: 300,
-    include: { employee: { select: { id: true, name: true, employeeCode: true, userId: true, branch: { select: { code: true } } } }, leaveType: { select: { name: true, isPaid: true } }, decidedBy: { select: { name: true } } },
+    include: {
+      employee: {
+        select: { id: true, name: true, employeeCode: true, userId: true, branch: { select: { code: true } } },
+      },
+      leaveType: { select: { name: true, isPaid: true } },
+      decidedBy: { select: { name: true } },
+    },
   });
   return {
     approver,
@@ -254,7 +353,12 @@ export async function leaveFormOptions(user: CurrentUser) {
   const [types, staff] = await Promise.all([
     db.leaveType.findMany({ where: { organizationId: orgId, isActive: true }, orderBy: { name: "asc" } }),
     db.employee.findMany({
-      where: { organizationId: orgId, deletedAt: null, status: { not: "EXITED" }, OR: [{ userId: user.id }, { branchId: { in: approverBranches } }] },
+      where: {
+        organizationId: orgId,
+        deletedAt: null,
+        status: { not: "EXITED" },
+        OR: [{ userId: user.id }, { branchId: { in: approverBranches } }],
+      },
       select: { id: true, name: true, employeeCode: true },
       orderBy: { name: "asc" },
     }),
@@ -267,11 +371,20 @@ export async function leaveFormOptions(user: CurrentUser) {
 
 export async function listHolidays(orgId: string, year: number) {
   const rows = await db.holiday.findMany({
-    where: { organizationId: orgId, date: { gte: new Date(Date.UTC(year, 3, 1)), lte: new Date(Date.UTC(year + 1, 2, 31)) } },
+    where: {
+      organizationId: orgId,
+      date: { gte: new Date(Date.UTC(year, 3, 1)), lte: new Date(Date.UTC(year + 1, 2, 31)) },
+    },
     include: { branch: { select: { name: true } } },
     orderBy: { date: "asc" },
   });
-  return rows.map((h) => ({ id: h.id, date: ymd(h.date)!, name: h.name, branchId: h.branchId, branch: h.branch?.name ?? "All branches" }));
+  return rows.map((h) => ({
+    id: h.id,
+    date: ymd(h.date)!,
+    name: h.name,
+    branchId: h.branchId,
+    branch: h.branch?.name ?? "All branches",
+  }));
 }
 
 // ------------------------------------------------------------------ incentives & advances
@@ -279,12 +392,18 @@ export async function listHolidays(orgId: string, year: number) {
 export async function listIncentives(user: CurrentUser, activeBranchId: string | null) {
   const c = branchConstraint(user.access, "incentives.manage", activeBranchId);
   const c2 = branchConstraint(user.access, "incentives.approve", activeBranchId);
-  const scope = c.branchIds === null || c2.branchIds === null ? null : [...new Set([...(c.branchIds ?? []), ...(c2.branchIds ?? [])])];
+  const scope =
+    c.branchIds === null || c2.branchIds === null
+      ? null
+      : [...new Set([...(c.branchIds ?? []), ...(c2.branchIds ?? [])])];
   const rows = await db.incentive.findMany({
     where: { employee: { organizationId: user.organizationId, ...(scope ? { branchId: { in: scope } } : {}) } },
     orderBy: [{ year: "desc" }, { month: "desc" }, { createdAt: "desc" }],
     take: 300,
-    include: { employee: { select: { name: true, employeeCode: true, userId: true, branch: { select: { code: true } } } }, approvedBy: { select: { name: true } } },
+    include: {
+      employee: { select: { name: true, employeeCode: true, userId: true, branch: { select: { code: true } } } },
+      approvedBy: { select: { name: true } },
+    },
   });
   return rows.map((i) => ({
     id: i.id,
@@ -306,7 +425,12 @@ export type IncentiveRow = Awaited<ReturnType<typeof listIncentives>>[number];
 export async function staffOptions(user: CurrentUser, permission: PermissionKey) {
   const branches = (await branchOptions(user, permission)).map((b) => b.value);
   const rows = await db.employee.findMany({
-    where: { organizationId: user.organizationId, deletedAt: null, status: { not: "EXITED" }, branchId: { in: branches } },
+    where: {
+      organizationId: user.organizationId,
+      deletedAt: null,
+      status: { not: "EXITED" },
+      branchId: { in: branches },
+    },
     select: { id: true, name: true, employeeCode: true, branchId: true },
     orderBy: { name: "asc" },
   });
@@ -341,11 +465,17 @@ export async function getPayrollRun(user: CurrentUser, id: string) {
     include: {
       branch: { select: { id: true, name: true, code: true } },
       finalizedBy: { select: { name: true } },
-      payslips: { include: { employee: { select: { id: true, name: true, employeeCode: true } } }, orderBy: { employee: { name: "asc" } } },
+      payslips: {
+        include: { employee: { select: { id: true, name: true, employeeCode: true } } },
+        orderBy: { employee: { name: "asc" } },
+      },
     },
   });
   if (!r || !canAccessBranch(user.access, "payroll.view", r.branchId)) return null;
-  const accounts = await db.moneyAccount.findMany({ where: { branchId: r.branchId, isActive: true }, orderBy: { name: "asc" } });
+  const accounts = await db.moneyAccount.findMany({
+    where: { branchId: r.branchId, isActive: true },
+    orderBy: { name: "asc" },
+  });
   const slips = r.payslips.map((s) => {
     const sum = (s.summary ?? {}) as Partial<AttendanceSummary>;
     return {

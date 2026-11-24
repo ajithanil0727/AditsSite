@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Edit role" };
 export default async function RolePage(props: PageProps<"/admin/settings/roles/[id]">) {
   const user = await requirePagePermission("roles.view");
   const { id } = await props.params;
-  const role = await getRole(user.organizationId, id);
+  const role = await getRole(user.organizationId, id, canManageProtected(user.access));
   if (!role) notFound();
 
   return (
@@ -25,6 +25,7 @@ export default async function RolePage(props: PageProps<"/admin/settings/roles/[
         role={role}
         canManage={can(user.access, "roles.manage") && (!role.isProtected || canManageProtected(user.access))}
         ownPermissions={[...user.access.permissions.keys()]}
+        hiddenPermissions={canManageProtected(user.access) ? [] : ["users.manage_protected", "audit.view"]}
       />
     </>
   );
